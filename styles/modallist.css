@@ -235,7 +235,7 @@
 
 /* Size of the Tool's Floating Modal */
 .floating-window[data-type="tools"] {
-  width: clamp(280px, 60vw, 600px);
+  width: clamp(300px, 60vw, 600px);
   height: clamp(250px, 60vh, 90vh);
 }
 
@@ -375,7 +375,7 @@ body.dark .view-project-btn:hover {
 
 /* Size of the Projects's Floating Modal */
 .floating-window[data-type="projects"] {
-  width: clamp(280px, 60vw, 900px);
+  width: clamp(300px, 60vw, 900px);
   height: clamp(250px, 65vh, 90vh);
 }
 
@@ -467,7 +467,7 @@ body:not(.dark) .link-warning {
 
 /* Size of the link's Floating Modal */
 .floating-window[data-type="links"] {
-  width: clamp(290px, 60vw, 500px);
+  width: clamp(300px, 60vw, 500px);
   height: auto;
 }
 
