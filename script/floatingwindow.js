@@ -263,7 +263,7 @@ if (type === "contact") {
       <input type="email" name="from_email" id="from_email" placeholder="example@email.com" required />
 
       <label for="from_name">Your Name</label>
-      <input type="text" name="from_name" id="from_name" placeholder="John Doe" required />
+      <input type="text" name="from_name" id="from_name" placeholder="Jhon Cristopher Potestas" required />
 
       <label for="message">Enter your message</label>
       <textarea name="message" id="message" rows="4" placeholder="Type your message here..." required></textarea>
