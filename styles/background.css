@@ -1,0 +1,119 @@
+    #lottie-bg {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.5s ease-in-out;
+      overflow: hidden;
+    }
+
+
+.toggle-group {
+  position: fixed;
+  top: 2rem;
+  left: 2rem;
+  z-index: 100;
+  display: flex;
+  gap: 1.5rem;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  cursor: pointer;
+}
+
+/* Default: black icon in day mode */
+#audio-toggle-icon {
+  color: black;
+  transition: color 0.3s ease;
+}
+
+/* White icon in night mode */
+body.dark #audio-toggle-icon {
+  color: white;
+}
+
+
+.rotate {
+  animation: rotateIcon 0.4s ease-in-out;
+}
+
+@keyframes rotateIcon {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(180deg); }
+}
+
+.fade-out { opacity: 0; }
+.fade-in { opacity: 1; }
+
+
+
+
+/* Hide by default */
+#mobile-warning {
+  display: none;
+}
+
+/* Show only on screens 800px or less */
+@media (max-width: 799px) {
+  #mobile-warning {
+  display: block;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background-color: #ffffff;
+  color: rgb(0, 0, 0);
+  width: 100%;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  font-family: Roboto Mono;
+}
+
+.mobile-warning-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.mobile-warning-text {
+  flex: 1;
+  text-align: left;
+}
+
+.mobile-warning-text h2 {
+  font-size: clamp(1.3rem, 2.5vw, 2rem);
+  margin: 0 0 0.5rem;
+  font-weight: 800;
+  filter: drop-shadow(0 3px 1px rgba(92, 92, 92, 0.6));
+}
+
+.mobile-warning-text p {
+  font-size: clamp(0.9rem, 1.5vw, 1.2rem);
+  font-weight: 500;
+  margin: 0;
+}
+
+.mobile-warning-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+}
+
+#close-warning {
+  background-color: #f97316;
+  color: white;
+  border: none;
+  padding: clamp(1rem, 1vw, 0.75rem) clamp(1.7rem, 2vw, 1.5rem);
+  font-size: clamp(0.9rem, 1.3vw, 1rem);
+  cursor: pointer;
+  border-radius: 5px;
+  filter: drop-shadow(0 5px 1px rgba(92, 92, 92, 0.6));
+  
+  }
+}
+

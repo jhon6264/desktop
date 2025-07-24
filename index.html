@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>jhon's desktop</title>
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+  <script src="https://unpkg.com/lottie-web@latest/build/player/lottie.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/mainbox.css">
+  <link rel="stylesheet" href="styles/background.css">
+  <link rel="stylesheet" href="styles/floatingwindow.css">
+  <link rel="stylesheet" href="styles/modallist.css">
+</head>
+
+
+<body id="body">
+
+<div class="toggle-group">
+  <!-- Day/Night Mode Toggle -->
+  <i id="mode-icon" class="bi" role="button" aria-label="Toggle theme" onclick="toggleMode()"></i>
+
+  <!-- Audio Toggle -->
+  <i id="audio-toggle-icon" class="bi bi-volume-up-fill" role="button" aria-label="Toggle audio" onclick="toggleAudioSetting()"></i>
+</div>
+
+  <div id="lottie-bg" class="fade-in"></div>
+
+  <div class="main-wrapper">
+    <div class="home-box" id="home-window">
+      <div class="home-header">
+        <div class="home-title">Home</div>
+      </div>
+
+      <div class="home-content">
+        <h1 class="greet">Hello! <span class="nick">I'm Jhon</span></h1>
+        <p class="att">Student, Pogi, Gwapo</p>
+
+        <div class="icon-links">
+          <div class="icon-item" data-window="about">
+            <i class="bi bi-fingerprint"></i><span>About</span>
+          </div>
+          <div class="icon-item" data-window="tools">
+            <i class="bi bi-hammer"></i><span>Tools</span>
+          </div>
+          <div class="icon-item" data-window="projects">
+            <i class="bi bi-code-slash"></i><span>Projects</span>
+          </div>
+          <div class="icon-item" data-window="links">
+            <i class="bi bi-paperclip"></i><span>Links</span>
+          </div>
+          <div class="icon-item" data-window="contact">
+            <i class="bi bi-wechat"></i><span>Contact</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="floating-windows-container" class="fixed inset-0 pointer-events-none z-50"></div>
+
+  <div id="floating-modal" class="floating-modal hidden">
+    <p id="floating-text">Message Sent Successfully!</p>
+    <i id="floating-icon" class="bi bi-envelope-check"></i>
+  </div>
+
+<button id="audio-toggle-btn">
+  <i id="audio-toggle-icon" class="bi bi-volume-up-fill"></i>
+</button>
+
+
+<div id="mobile-warning">
+  <div class="mobile-warning-content">
+    <div class="mobile-warning-text">
+      <h2>Yoo!</h2>
+      <p>Kabalo baka na mas nindot ni nga website kung Desktop/Laptop imong gamit, kay aron smooth ang mga animation ug sound</p>
+    </div>
+    <div class="mobile-warning-button">
+      <button id="close-warning">Payts!</button>
+    </div>
+  </div>
+</div>
+
+ <script src="script/background.js"></script>
+ <script src="script/floatingwindow.js"></script>
+<script>
+
+
+
+</script>
+
+
+
+</body>
+</html>

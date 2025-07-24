@@ -1,0 +1,167 @@
+    .main-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem;
+      z-index: 10;
+      position: relative;
+    }
+
+    .home-box {
+      background: rgba(255, 255, 255, 0.5);
+      border: 3px solid #303030;
+      color: #000;
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      width: 90%;
+      max-width: 500px;
+      border-radius: 1rem;
+      transition: box-shadow 0.4s ease-in-out, background 0.4s ease-in-out;
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
+      margin-top: 15px;
+    }
+
+
+    /* Default (Light mode) */
+#home-window .home-header {
+  background-color: rgb(61, 61, 61); /* soft white */
+  border-bottom: 3px solid #303030;
+  border-top-left-radius: 0.7rem;
+  border-top-right-radius: 0.7rem;
+  cursor: default;
+}
+
+/* Dark Mode */
+.dark #home-window .home-header {
+  background-color: rgba(0, 0, 0, 0.2); /* soft black */
+  border-bottom: 2px solid rgb(255, 255, 255);
+    border-top-left-radius: 0.7rem;
+  border-top-right-radius: 0.7rem;
+  cursor: default;
+  
+}
+
+
+#home-window .home-title {
+  color: #ffffff; /* dark gray or any color you like */
+  padding-bottom: 3px;
+
+}
+
+.dark #home-window .home-title {
+  color: #fff; 
+  padding-bottom: 3px;
+}
+
+      body.dark .home-box {
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      border-color: #fff;
+    }
+
+    .home-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #000;
+      padding: 5px 0 0 1.5rem;
+      
+    }
+
+
+    .home-content {
+      padding: 0 1.5rem 1.5rem 1.5rem;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: .5rem 2rem 3rem 2rem;
+    }
+
+    .home-content a {
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    body.dark {
+      background-color: #000;
+    }
+
+
+
+    body.dark .home-title,
+    body.dark .home-content,
+    body.dark .home-content a {
+      color: #fff !important;
+    }
+
+
+    .greet {
+      font-size: clamp(1.5rem, 4vw, 2.8rem);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .nick {
+      font-size: clamp(1.5rem, 4vw, 2.8rem);
+      color: orangered;
+      
+    }
+
+    .att {
+      font-size: clamp(0.9rem, 2.3vw, 1.3rem);
+      text-align: center;
+    }
+
+    .icon-links {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 2rem;
+      margin-top: 2rem;
+      text-align: center;
+    }
+
+    .icon-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: clamp(.8rem, 1.2vw, 1rem);
+      color: #333;
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+
+    .icon-item i {
+      font-size: clamp(2rem, 3vw, 2.5rem);
+      margin-bottom: 0.3rem;
+     
+    }
+
+    .icon-item:hover {
+      transform: scale(1.1);
+    }
+
+    body.dark .icon-item {
+      color: #fff;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0;}
+      to { opacity: 1; }
+    }
+
+
+.home-header {
+  cursor: grabbing;
+}
+
+#home-window .home-header {
+  cursor: default !important;
+}

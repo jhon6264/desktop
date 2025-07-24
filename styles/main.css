@@ -1,0 +1,10 @@
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: Roboto Mono;
+    }
+
+    body {
+      transition: background-color 0.5s ease-in-out;
+    }
