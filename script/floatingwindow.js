@@ -234,7 +234,7 @@ if (type === "links") {
             <i class="bi bi-facebook"></i>
             <span class="label">Facebook</span>
           </a>
-          <a href="www.youtube.com/@NarratoFiles" target="_blank" class="icon-link">
+          <a href="https://www.youtube.com/@NarratoFiles" target="_blank" class="icon-link">
             <i class="bi bi-youtube"></i>
             <span class="label">Youtube</span>
           </a>
@@ -445,6 +445,7 @@ item.addEventListener("click", (e) => {
   createFloatingWindow(type, e.currentTarget); 
 });
 });
+
 
 
 
