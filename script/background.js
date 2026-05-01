@@ -7,6 +7,7 @@
   function toggleMode() {
     const icon = document.getElementById('mode-icon');
     const lottieContainer = document.getElementById('lottie-bg');
+      const previousMode = currentMode;
       currentMode = currentMode === 'day' ? 'night' : 'day';
       localStorage.setItem('theme', currentMode);
       playSound(
@@ -18,6 +19,7 @@
 
 
     icon.classList.add('rotate');
+    window.playAboutPortraitTransition?.(previousMode, currentMode);
     lottieContainer.classList.remove('fade-in');
     lottieContainer.classList.add('fade-out');
 
@@ -35,6 +37,7 @@
     document.body.classList.toggle('dark', mode === 'night');
     icon.className = mode === 'night' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
     icon.style.color = mode === 'night' ? '#fff' : '#000';
+    window.setAboutPortrait?.(mode);
 
     lottieContainer.innerHTML = '';
     lottie.loadAnimation({

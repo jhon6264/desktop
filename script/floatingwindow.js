@@ -1,6 +1,85 @@
   
 const container = document.getElementById("floating-windows-container");
 
+const aboutPortraitAssets = {
+  day: "assets/day.jpg",
+  night: "assets/night.jpg",
+  dayToNight: "assets/day-night.mp4",
+  nightToDay: "assets/night-day.mp4",
+};
+
+function getCurrentThemeMode() {
+  return document.body.classList.contains("dark") ? "night" : "day";
+}
+
+function setAboutPortrait(mode = getCurrentThemeMode()) {
+  const portrait = document.querySelector(".about-portrait-img");
+  if (!portrait) return;
+
+  portrait.src = mode === "night" ? aboutPortraitAssets.night : aboutPortraitAssets.day;
+}
+
+function playAboutPortraitTransition(fromMode, toMode) {
+  const portrait = document.querySelector(".about-portrait-img");
+  const video = document.querySelector(".about-portrait-video");
+
+  if (!portrait || !video) return;
+
+  const transitionPath =
+    fromMode === "day" && toMode === "night"
+      ? aboutPortraitAssets.dayToNight
+      : aboutPortraitAssets.nightToDay;
+
+  portrait.src = fromMode === "night" ? aboutPortraitAssets.night : aboutPortraitAssets.day;
+  video.src = transitionPath;
+  video.currentTime = 0;
+  video.classList.add("is-playing");
+
+  const finishTransition = () => {
+    portrait.src = toMode === "night" ? aboutPortraitAssets.night : aboutPortraitAssets.day;
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+    video.classList.remove("is-playing");
+  };
+
+  video.onended = finishTransition;
+  video.onerror = finishTransition;
+  video.play().catch(finishTransition);
+}
+
+window.playAboutPortraitTransition = playAboutPortraitTransition;
+window.setAboutPortrait = setAboutPortrait;
+
+function centerFloatingWindow(modal) {
+  const padding = 20;
+  const modalWidth = modal.offsetWidth;
+  const modalHeight = modal.offsetHeight;
+  const maxLeft = window.innerWidth - modalWidth - padding;
+  const maxTop = window.innerHeight - modalHeight - padding;
+  const centeredLeft = (window.innerWidth - modalWidth) / 2;
+  const centeredTop = (window.innerHeight - modalHeight) / 2;
+  const homeWindow = document.getElementById("home-window");
+  let left = centeredLeft;
+  let top = centeredTop;
+
+  if (window.innerWidth >= 800 && homeWindow) {
+    const gap = 24;
+    const homeRect = homeWindow.getBoundingClientRect();
+    const rightSpace = window.innerWidth - homeRect.right - padding;
+    const leftSpace = homeRect.left - padding;
+
+    if (rightSpace >= modalWidth + gap) {
+      left = homeRect.right + gap;
+    } else if (leftSpace >= modalWidth + gap) {
+      left = homeRect.left - modalWidth - gap;
+    }
+  }
+
+  modal.style.left = `${Math.max(padding, Math.min(left, maxLeft))}px`;
+  modal.style.top = `${Math.max(padding, Math.min(top, maxTop))}px`;
+}
+
 function createFloatingWindow(type, anchorElement) {
   // Prevent duplicate windows
   const existing = container.querySelector(`.floating-window[data-type="${type}"]`);
@@ -16,8 +95,8 @@ function createFloatingWindow(type, anchorElement) {
   modal.className = `floating-window modal-box expand-in absolute pointer-events-auto`;
   modal.dataset.type = type;
 
-const maxModalWidth = 720;
-const maxModalHeight = 400;
+const maxModalWidth = type === "tools" ? Math.min(950, Math.max(340, vw * 0.88)) : 720;
+const maxModalHeight = type === "tools" ? Math.min(760, vh * 0.82) : 400;
 
 const paddingX = 20; // 💡 horizontal space from left/right edge
 const paddingY = 20; // 💡 vertical space from top/bottom edge
@@ -27,8 +106,7 @@ const paddingY = 20; // 💡 vertical space from top/bottom edge
 let centerY = (vh - maxModalHeight) / 2;
 
 // 🌀 Random horizontal offset
-const horizontalRange = vw * 0.1; // 10% shift left/right from center
-let randomOffsetX = (Math.random() * horizontalRange * 2) - horizontalRange;
+let randomOffsetX = 0;
 
 // 💡 Add random X offset to centered position
 let centerX = (vw - maxModalWidth) / 2 + randomOffsetX;
@@ -52,36 +130,82 @@ if (type === "about") {
   modalContent = `
 <div class="about-modal-content">
   <div class="about-header">
-    <img src="assets/j.jpg" />
+    <div class="about-portrait">
+      <img class="about-portrait-img" src="assets/day.jpg" alt="Jhon Cristopher Potestas" />
+      <video class="about-portrait-video" muted playsinline preload="auto"></video>
+    </div>
     <div class="about-text">
-      <div class="name">Jhon Cristopher Potestas</div>
+      <div class="name">Jhon Cristopher R. Potestas</div>
       <div class="degree">BS in Information Technology</div>
       <div class="year">3rd Year Student</div>
-      <div class="height">5'7ft.</div>
+      <div class="about-role">Web Dev • App Dev • Game Dev</div>
     </div>
   </div>
 
   <div class="about-scrollable">
-    <div class="education-section">
+    <section class="about-section about-bio">
+      <p>I’m an Information Technology student who enjoys building interactive websites, simple systems, and game-like experiences. I like combining design, code, and small details to make projects feel alive and personal.</p>
+    </section>
+
+    <section class="about-section">
+      <a class="about-location-link" href="https://www.google.com/maps/search/?api=1&query=Balnate%2C%20Magsaysay%2C%20Davao%20del%20Sur%2C%20Philippines" target="_blank">
+        <i class="bi bi-geo-alt-fill"></i>
+        <span>Balnate, Magsaysay, Davao del Sur, Philippines</span>
+      </a>
+    </section>
+
+    <section class="about-section">
+      <h3>Focus</h3>
+      <div class="about-chip-list">
+        <span>Web Development</span>
+        <span>UI Design</span>
+        <span>Game Development</span>
+        <span>System Development</span>
+      </div>
+    </section>
+
+    <section class="about-section">
+      <h3>Currently Learning</h3>
+      <div class="about-learning-icons" aria-label="React, Laravel, Firebase, UI/UX, Godot">
+        <img src="assets/icons/react.png" alt="React">
+        <i class="devicon-laravel-original colored" aria-label="Laravel"></i>
+        <img src="assets/icons/firebase.png" alt="Firebase">
+        <i class="bi bi-bezier2" aria-label="UI/UX"></i>
+        <i class="devicon-godot-plain colored" aria-label="Godot"></i>
+      </div>
+    </section>
+
+    <section class="about-section education-section">
       <h3>Education</h3>
-      <p><span class="entity">&#187;</span> Primary – Balnate Elementary School & AFPLC Elementary School</p>
-      <p><span class="entity">&#187;</span> Secondary – Magsaysay Academy Inc. & Padada National High School</p>
-      <p><span class="entity">&#187;</span> Tertiary – St. Mary's College of Bansalan Inc.</p>
-    </div>
+      <div class="about-info-row">
+        <span>Primary</span>
+        <p>Balnate Elementary School / AFPLC Elementary School</p>
+      </div>
+      <div class="about-info-row">
+        <span>Secondary</span>
+        <p>Magsaysay Academy Inc. / Padada National High School</p>
+      </div>
+      <div class="about-info-row">
+        <span>Tertiary</span>
+        <p>St. Mary's College of Bansalan Inc.</p>
+      </div>
+    </section>
 
-       <div class="interest-section">
-    <h3>Interest</h3>
-    <p><span class="entity">&#187;</span> Sitting under the tree</p>
-    <p><span class="entity">&#187;</span> Love to raise farm animals</p>
-    <p><span class="entity">&#187;</span> Playing online games when bored</p>
-    <p><span class="entity">&#187;</span> Play basketball</p>
-    <p><span class="entity">&#187;</span> Make fun</p>
-  </div>
+    <section class="about-section interest-section">
+      <h3>Interests</h3>
+      <ul class="about-interest-list">
+        <li>Basketball</li>
+        <li>Farm Animals</li>
+        <li>Online Games</li>
+        <li>Design</li>
+        <li>Small Projects</li>
+      </ul>
+    </section>
 
-    <div class="language-section">
-      <h3>Language & Dialect</h3>
-      <p>Cebuano, Tagalog and little japanese</p>
-    </div>
+    <section class="about-section language-section">
+      <h3>Languages</h3>
+      <p>Cebuano, Tagalog, English, and Basic Japanese</p>
+    </section>
   </div>
 </div>
 
@@ -91,33 +215,264 @@ if (type === "about") {
 if (type === "tools") {
   modalContent = `
     <div class="tools-modal-content tools-box">
-  <h3>Design and Editing</h3>
+  <h3>Development Stack</h3>
   <div class="tools-grid">
-    <div class="tools-grid-item">Figma</div>
-    <div class="tools-grid-item">Photoshop</div>
-    <div class="tools-grid-item">Blender</div>
-    <div class="tools-grid-item">Milanote</div>
-    <div class="tools-grid-item">CapCut</div>
-    <div class="tools-grid-item">Microsoft Word</div>
-    <div class="tools-grid-item">Microsoft PowerPoint</div>
+    <div class="tools-grid-item">
+      <i class="devicon-html5-plain colored tool-icon"></i>
+      <span>HTML</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-css3-plain colored tool-icon"></i>
+      <span>CSS</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-javascript-plain colored tool-icon"></i>
+      <span>JavaScript</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-php-plain colored tool-icon"></i>
+      <span>PHP</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/python.png" alt="Python" class="tool-icon">
+      <span>Python</span>
+    </div>
   </div>
 
-  <h3>Development</h3>
+  <h3>Frontend</h3>
   <div class="tools-grid">
-    <div class="tools-grid-item">Visual Studio Code</div>
-    <div class="tools-grid-item">Visual Studio 2022</div>
-    <div class="tools-grid-item">DevC++</div>
-    <div class="tools-grid-item">Apache Netbeans</div>
-    <div class="tools-grid-item">Godot Engine</div>
-    <div class="tools-grid-item">Cisco Packet Tracer</div>
-    <div class="tools-grid-item">XAMPP</div>
+    <div class="tools-grid-item">
+      <i class="devicon-bootstrap-plain colored tool-icon"></i>
+      <span>Bootstrap 5</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-tailwindcss-original colored tool-icon"></i>
+      <span>Tailwind CSS</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/react.png" alt="React" class="tool-icon">
+      <span>React</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/nextjs.svg" alt="Next.js" class="tool-icon">
+      <span>Next.js</span>
+    </div>
   </div>
 
-  <h3>Programming Languages</h3>
+  <h3>Backend</h3>
   <div class="tools-grid">
-    <div class="tools-grid-item">C++</div>
-    <div class="tools-grid-item">Java</div>
-    <div class="tools-grid-item">JavaScript</div>
+    <div class="tools-grid-item">
+      <i class="devicon-laravel-original colored tool-icon"></i>
+      <span>Laravel</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-java-plain colored tool-icon"></i>
+      <span>Java</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-cplusplus-plain colored tool-icon"></i>
+      <span>C++</span>
+    </div>
+  </div>
+
+  <h3>Storage</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <img src="assets/icons/github.png" alt="GitHub" class="tool-icon">
+      <span>GitHub</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/infinityfree.png" alt="InfinityFree" class="tool-icon">
+      <span>InfinityFree</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/firebase.png" alt="Firebase" class="tool-icon">
+      <span>Firebase</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/hostinger.png" alt="Hostinger" class="tool-icon">
+      <span>Hostinger</span>
+    </div>
+  </div>
+
+  <h3>Design</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <img src="assets/icons/figma.png" alt="Figma" class="tool-icon">
+      <span>Figma</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-photoshop-plain colored tool-icon"></i>
+      <span>Photoshop</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-blender-original colored tool-icon"></i>
+      <span>Blender</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-canva-original colored tool-icon"></i>
+      <span>Canva</span>
+    </div>
+  </div>
+
+  <h3>Mobile Dev</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <i class="devicon-flutter-plain colored tool-icon"></i>
+      <span>Flutter</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/react-native-expo.png" alt="React Native Expo" class="tool-icon">
+      <span>React Native Expo</span>
+    </div>
+  </div>
+
+  <h3>Game Dev</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <i class="devicon-godot-plain colored tool-icon"></i>
+      <span>Godot / GD Script</span>
+    </div>
+  </div>
+
+  <h3>Favorite Libraries</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <img src="assets/icons/anime-js.png" alt="anime.js" class="tool-icon">
+      <span>anime.js</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/flaticon.png" alt="Flaticon" class="tool-icon">
+      <span>Flaticons</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/google-font.png" alt="Google Fonts" class="tool-icon">
+      <span>Google Fonts</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/daisyUI.png" alt="DaisyUI" class="tool-icon">
+      <span>DaisyUI</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/dafont.png" alt="Dafont" class="tool-icon">
+      <span>Dafont</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/icon-icon.png" alt="icon-icons" class="tool-icon">
+      <span>icon-icon</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/iconape.png" alt="Iconape" class="tool-icon">
+      <span>Iconape</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/reacticons.svg" alt="React Icons" class="tool-icon">
+      <span>React Icons</span>
+    </div>
+  </div>
+
+  <h3>Software</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <i class="devicon-vscode-plain colored tool-icon"></i>
+      <span>Visual Studio Code</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-visualstudio-plain colored tool-icon"></i>
+      <span>Visual Studio</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-cplusplus-plain colored tool-icon"></i>
+      <span>Dev C++</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/netbeans.png" alt="Apache NetBeans" class="tool-icon">
+      <span>Apache NetBeans</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-godot-plain colored tool-icon"></i>
+      <span>Godot</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/cisco.png" alt="Cisco Packet Tracer" class="tool-icon">
+      <span>Cisco Packet Tracer</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/xampp.png" alt="XAMPP" class="tool-icon">
+      <span>XAMPP</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-postman-plain colored tool-icon"></i>
+      <span>Postman</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-arduino-plain colored tool-icon"></i>
+      <span>Arduino IDE</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-git-plain colored tool-icon"></i>
+      <span>Git</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/protonvpn.jpg" alt="Proton VPN" class="tool-icon">
+      <span>Proton VPN</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/expororbit.jpg" alt="Expo Orbit" class="tool-icon">
+      <span>Expo Orbit</span>
+    </div>
+  </div>
+
+  <h3>Artificial Intelligence</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <img src="assets/icons/chatgpt.png" alt="ChatGPT" class="tool-icon">
+      <span>ChatGPT</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="bi bi-braces-asterisk tool-icon"></i>
+      <span>Claude</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/deepseek.png" alt="DeepSeek" class="tool-icon">
+      <span>DeepSeek</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/gemini.png" alt="Gemini" class="tool-icon">
+      <span>Gemini</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/cursor.png" alt="Cursor" class="tool-icon">
+      <span>Cursor</span>
+    </div>
+  </div>
+
+  <h3>Video</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <img src="assets/icons/capcut.jpg" alt="CapCut" class="tool-icon">
+      <span>CapCut</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-premierepro-plain colored tool-icon"></i>
+      <span>Adobe Premiere</span>
+    </div>
+  </div>
+
+  <h3>Others</h3>
+  <div class="tools-grid">
+    <div class="tools-grid-item">
+      <img src="assets/icons/word.png" alt="Microsoft Word" class="tool-icon">
+      <span>Microsoft Word</span>
+    </div>
+    <div class="tools-grid-item">
+      <img src="assets/icons/powerpoint.png" alt="Microsoft PowerPoint" class="tool-icon">
+      <span>Microsoft PowerPoint</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="bi bi-file-earmark-spreadsheet-fill tool-icon"></i>
+      <span>Excel</span>
+    </div>
   </div>
 </div>
 
@@ -137,16 +492,49 @@ if (type === "projects") {
           <div class="project-title">First Online Portfolio</div>
           <p class="project-description">My first static web portfolio, which includes a variety of my information.  Examples include name, education, achievement, and links to social media platforms.  
           It was created in my second year as a midterm project.</p>
-              <div class="tools-grid">
-  <span class="tools-grid-item">HTML</span>
-  <span class="tools-grid-item">CSS</span>
-  <span class="tools-grid-item">JS</span>
-  <span class="tools-grid-item">Bootstrap 5</span>
-  <span class="tools-grid-item">Email.js</span>
+              <div class="project-tech-list">
+  <span class="project-tech-item"><i class="devicon-html5-plain colored"></i><span>HTML</span></span>
+  <span class="project-tech-item"><i class="devicon-css3-plain colored"></i><span>CSS</span></span>
+  <span class="project-tech-item"><i class="devicon-javascript-plain colored"></i><span>JS</span></span>
+  <span class="project-tech-item"><i class="devicon-bootstrap-plain colored"></i><span>Bootstrap 5</span></span>
+  <span class="project-tech-item"><i class="bi bi-envelope-at-fill"></i><span>Email.js</span></span>
               </div>
           <a href="https://jhon6264.github.io/portfolio/" target="_blank" class="view-project-btn">
             <span class="anchor">View Portfolio</span>
           </a>
+        </div>
+      </div>
+      <div class="project-item">
+        <img src="assets/PokeTalk.png" alt="PokeTalk">
+        <div class="project-text">
+          <div class="project-title">PokeTalk</div>
+          <p class="project-description">A Pokemon-themed web app that uses PokeAPI data to show Pokemon information in a simple hosted PHP project. It was built as a lightweight API practice project and deployed through InfinityFree.</p>
+          <div class="project-tech-list">
+            <span class="project-tech-item"><i class="devicon-php-plain colored"></i><span>PHP</span></span>
+            <span class="project-tech-item"><i class="bi bi-database-fill"></i><span>PokeAPI</span></span>
+            <span class="project-tech-item"><img src="assets/icons/infinityfree.png" alt=""><span>InfinityFree</span></span>
+          </div>
+          <a href="https://poketalk.free.nf/" target="_blank" class="view-project-btn">
+            <span class="anchor">View Website</span>
+          </a>
+        </div>
+      </div>
+      <div class="project-item">
+        <img src="assets/Riderx.png" alt="RiderX">
+        <div class="project-text">
+          <div class="project-title">RiderX</div>
+          <p class="project-description">A web-based motorcycle rider platform concept with a Laravel backend and a modern React interface. It focuses on structured rider data, clean navigation, and a dashboard-style experience.</p>
+          <div class="project-tech-list">
+            <span class="project-tech-item"><i class="devicon-html5-plain colored"></i><span>HTML</span></span>
+            <span class="project-tech-item"><i class="devicon-css3-plain colored"></i><span>CSS</span></span>
+            <span class="project-tech-item"><i class="devicon-javascript-plain colored"></i><span>JS</span></span>
+            <span class="project-tech-item"><i class="devicon-laravel-original colored"></i><span>Blade</span></span>
+            <span class="project-tech-item"><img src="assets/icons/react.png" alt=""><span>React</span></span>
+            <span class="project-tech-item"><i class="devicon-laravel-original colored"></i><span>Laravel</span></span>
+            <span class="project-tech-item"><i class="devicon-tailwindcss-original colored"></i><span>Tailwind CSS</span></span>
+            <span class="project-tech-item"><img src="assets/icons/anime-js.png" alt=""><span>Anime.js</span></span>
+            <span class="project-tech-item"><i class="devicon-mysql-plain colored"></i><span>MySQL</span></span>
+          </div>
         </div>
       </div>
 
@@ -161,13 +549,13 @@ if (type === "projects") {
           <p class="project-description">An interactive 2D pixel game created for our 2nd semester project in my second year. All of the assets were downloaded from itch.io,
            pixabay, and freesound because I didn't know how to make them. But overall, 
           it was a good experience as a beginner.</p>
-<div class="tools-grid">
-  <span class="tools-grid-item">GD Script</span>
-  <span class="tools-grid-item">C++</span>
-  <span class="tools-grid-item">C</span>
-  <span class="tools-grid-item">Itch.io Assets</span>
-  <span class="tools-grid-item">Freesound</span>
-  <span class="tools-grid-item">Pixabay</span>
+<div class="project-tech-list">
+  <span class="project-tech-item"><i class="devicon-godot-plain colored"></i><span>GD Script</span></span>
+  <span class="project-tech-item"><i class="devicon-cplusplus-plain colored"></i><span>C++</span></span>
+  <span class="project-tech-item"><i class="devicon-c-plain colored"></i><span>C</span></span>
+  <span class="project-tech-item"><i class="bi bi-controller"></i><span>Itch.io Assets</span></span>
+  <span class="project-tech-item"><i class="bi bi-volume-up-fill"></i><span>Freesound</span></span>
+  <span class="project-tech-item"><i class="bi bi-image-fill"></i><span>Pixabay</span></span>
 </div>
 
         </div>
@@ -180,13 +568,56 @@ if (type === "projects") {
           were chase by the balls(enemy), collecting coins and potions to enable the player to survive
           and set highest score. It was made during our second semester Final.
           </p>
-<div class="tools-grid">
-  <span class="tools-grid-item">Godot Engine</span>
-  <span class="tools-grid-item">Blender</span>
-  <span class="tools-grid-item">ElevenLabs</span>
-  <span class="tools-grid-item">Figma</span>
+<div class="project-tech-list">
+  <span class="project-tech-item"><i class="devicon-godot-plain colored"></i><span>Godot Engine</span></span>
+  <span class="project-tech-item"><i class="devicon-blender-original colored"></i><span>Blender</span></span>
+  <span class="project-tech-item"><i class="bi bi-soundwave"></i><span>ElevenLabs</span></span>
+  <span class="project-tech-item"><img src="assets/icons/figma.png" alt=""><span>Figma</span></span>
 </div>
 
+        </div>
+      </div>
+
+      <hr class="project-separator" />
+
+      <!-- Mobile Development -->
+      <h3 class="project-section-title">Mobile Development</h3>
+      <div class="project-item">
+        <img class="mobile-project-preview" src="assets/SmartLock.jpg" alt="SmartLock">
+        <div class="project-text">
+          <div class="project-title">SmartLock</div>
+          <p class="project-description">A mobile app prototype for controlling and monitoring a smart lock experience. It was built with React Native Expo and tested through Expo Go for fast mobile development.</p>
+          <div class="project-tech-list">
+            <span class="project-tech-item"><img src="assets/icons/react-native-expo.png" alt=""><span>React Native Expo</span></span>
+            <span class="project-tech-item"><img src="assets/icons/expororbit.jpg" alt=""><span>Expo Go</span></span>
+          </div>
+          <a href="apk/SmartLock.apk" download class="view-project-btn">
+            <span class="anchor">Download App</span>
+          </a>
+        </div>
+      </div>
+      <div class="project-item">
+        <img class="mobile-project-preview" src="assets/BasketballPaymentTracker.jpg" alt="Basketball Payment Tracker">
+        <div class="project-text">
+          <div class="project-title">Basketball Payment Tracker</div>
+          <p class="project-description">A mobile tracker for managing basketball payment records and keeping contribution details organized. It was built with React Native Expo and prepared as an installable Android app.</p>
+          <div class="project-tech-list">
+            <span class="project-tech-item"><img src="assets/icons/react-native-expo.png" alt=""><span>React Native Expo</span></span>
+            <span class="project-tech-item"><img src="assets/icons/expororbit.jpg" alt=""><span>Expo Go</span></span>
+          </div>
+          <a href="apk/BasketballPaymentTracker.apk" download class="view-project-btn">
+            <span class="anchor">Download App</span>
+          </a>
+        </div>
+      </div>
+      <div class="project-item">
+        <img class="mobile-project-preview" src="assets/pizzadeuno.png" alt="Pizza de Uno">
+        <div class="project-text">
+          <div class="project-title">Pizza de Uno</div>
+          <p class="project-description">A food-ordering mobile app concept focused on pizza menu browsing and simple ordering flow. It was created with Flutter as a practice project for mobile UI and app navigation.</p>
+          <div class="project-tech-list">
+            <span class="project-tech-item"><i class="devicon-flutter-plain colored"></i><span>Flutter</span></span>
+          </div>
         </div>
       </div>
 
@@ -202,13 +633,13 @@ if (type === "projects") {
           I used Visual Studio 2022 as an IDE and Figma to 
           design the layouts, colors, and so on. For the database, I used localhost MySQL with the XAMPP management panel.
           </p>
-<div class="tools-grid">
-  <span class="tools-grid-item">VB.net</span>
-  <span class="tools-grid-item">Figma</span>
-  <span class="tools-grid-item">Photoshop</span>
-  <span class="tools-grid-item">Flaticon</span>
-  <span class="tools-grid-item">MySQL</span>
-  <span class="tools-grid-item">XAMPP</span>
+<div class="project-tech-list">
+  <span class="project-tech-item"><i class="devicon-visualbasic-plain colored"></i><span>VB.net</span></span>
+  <span class="project-tech-item"><img src="assets/icons/figma.png" alt=""><span>Figma</span></span>
+  <span class="project-tech-item"><i class="devicon-photoshop-plain colored"></i><span>Photoshop</span></span>
+  <span class="project-tech-item"><img src="assets/icons/flaticon.png" alt=""><span>Flaticon</span></span>
+  <span class="project-tech-item"><i class="devicon-mysql-plain colored"></i><span>MySQL</span></span>
+  <span class="project-tech-item"><img src="assets/icons/xampp.png" alt=""><span>XAMPP</span></span>
 </div>
 
         </div>
@@ -234,7 +665,7 @@ if (type === "links") {
             <i class="bi bi-facebook"></i>
             <span class="label">Facebook</span>
           </a>
-          <a href="https://www.youtube.com/@NarratoFiles" target="_blank" class="icon-link">
+          <a href="https://www.youtube.com/@rizeertales" target="_blank" class="icon-link">
             <i class="bi bi-youtube"></i>
             <span class="label">Youtube</span>
           </a>
@@ -355,6 +786,11 @@ modal.querySelector(".close-btn").onclick = () => {
 
   // Append to DOM
   container.appendChild(modal);
+  requestAnimationFrame(() => centerFloatingWindow(modal));
+
+  if (type === "about") {
+    setAboutPortrait();
+  }
 
   // Add sound for "View Portfolio" buttons
 modal.querySelectorAll(".view-project-btn").forEach((btn) => {
