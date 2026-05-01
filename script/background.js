@@ -58,9 +58,9 @@
 
   applyMode(currentMode);
 
-  function playClickSound() {
+function playClickSound() {
   playSound('audio/click.mp3');
-  backgroundAudio.play();
+  backgroundAudio?.play().catch(() => {});
 }
 
 let isAudioEnabled = true;
@@ -77,7 +77,7 @@ function toggleAudioSetting() {
   }
 
   if (isAudioEnabled && backgroundAudio) {
-    backgroundAudio.play();
+    backgroundAudio.play().catch(() => {});
   }
 }
 
@@ -85,7 +85,7 @@ function playSound(filePath, loop = false, isBackground = false) {
   if (isAudioEnabled) {
     const audio = new Audio(filePath);
     audio.loop = loop;
-    audio.play();
+    audio.play().catch(() => {});
 
     if (isBackground) {
       backgroundAudio = audio;
@@ -98,7 +98,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
  document.getElementById("close-warning").addEventListener("click", () => {
-  backgroundAudio.play();
+  backgroundAudio?.play().catch(() => {});
   document.getElementById("mobile-warning").style.display = "none";
 });
 

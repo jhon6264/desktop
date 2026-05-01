@@ -1,5 +1,7 @@
   
 const container = document.getElementById("floating-windows-container");
+const CHATBOT_API_URL = "https://jcrpbot.gt.tc/api/bot.php";
+let chatbotConversationId = localStorage.getItem("jcrp_chatbot_conversation_id") || "";
 
 const aboutPortraitAssets = {
   day: "assets/day.jpg",
@@ -151,6 +153,106 @@ function animateHomeIcons() {
     duration: 520,
     delay: getStaggerDelay(70, 120),
   });
+}
+
+function createChatMessage(role, text, isTyping = false) {
+  const message = document.createElement("div");
+  message.className = `chat-message ${role === "user" ? "user-message" : "bot-message"}`;
+
+  if (role !== "user") {
+    const avatar = document.createElement("div");
+    avatar.className = "chat-avatar";
+
+    const avatarImage = document.createElement("img");
+    avatarImage.src = "assets/day.jpg";
+    avatarImage.alt = "Jhon assistant";
+
+    avatar.appendChild(avatarImage);
+    message.appendChild(avatar);
+  }
+
+  const bubble = document.createElement("div");
+  bubble.className = "chat-bubble";
+
+  if (isTyping) {
+    bubble.classList.add("typing-bubble");
+    bubble.innerHTML = `
+      <span class="typing-dots" aria-label="Bot is thinking">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    `;
+  } else {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = text;
+    bubble.appendChild(paragraph);
+  }
+
+  message.appendChild(bubble);
+  return message;
+}
+
+function scrollChatToBottom(messages) {
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function setChatbotPending(form, isPending) {
+  const input = form.querySelector("input");
+  const button = form.querySelector("button");
+
+  input.disabled = isPending;
+  button.disabled = isPending;
+  form.classList.toggle("is-pending", isPending);
+}
+
+async function sendChatbotMessage(modal) {
+  const form = modal.querySelector(".chatbot-input-row");
+  const input = form.querySelector("input");
+  const messages = modal.querySelector(".chatbot-messages");
+  const userMessage = input.value.trim();
+
+  if (!userMessage || form.classList.contains("is-pending")) return;
+
+  input.value = "";
+  messages.appendChild(createChatMessage("user", userMessage));
+  const typingMessage = createChatMessage("bot", "", true);
+  messages.appendChild(typingMessage);
+  scrollChatToBottom(messages);
+  setChatbotPending(form, true);
+
+  try {
+    const response = await fetch(CHATBOT_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        message: userMessage,
+        conversation_id: chatbotConversationId,
+      }),
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw new Error("The chatbot endpoint returned HTML instead of JSON. The host may be showing a browser verification page.");
+    }
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "The chatbot could not answer right now.");
+    }
+
+    if (data.conversation_id) {
+      chatbotConversationId = data.conversation_id;
+      localStorage.setItem("jcrp_chatbot_conversation_id", chatbotConversationId);
+    }
+
+    typingMessage.replaceWith(createChatMessage("bot", data.reply || "I could not generate a reply."));
+  } catch (error) {
+    typingMessage.replaceWith(createChatMessage("bot", error.message || "Connection failed. Please try again later."));
+  } finally {
+    setChatbotPending(form, false);
+    input.focus();
+    scrollChatToBottom(messages);
+  }
 }
 
 function createFloatingWindow(type, anchorElement) {
@@ -783,7 +885,7 @@ if (type === "chatbot") {
     <div class="chatbot-modal-content">
       <div class="chatbot-status">
         <span class="chatbot-pulse"></span>
-        <span>Frontend preview</span>
+        <span>Portfolio assistant</span>
       </div>
 
       <div class="chatbot-messages" aria-live="polite">
@@ -793,19 +895,6 @@ if (type === "chatbot") {
           </div>
           <div class="chat-bubble">
             <p>Hi, I’m Jhon’s assistant. Ask me anything about his skills, projects, or background.</p>
-          </div>
-        </div>
-        <div class="chat-message user-message">
-          <div class="chat-bubble">
-            <p>Can you tell me about Jhon?</p>
-          </div>
-        </div>
-        <div class="chat-message bot-message">
-          <div class="chat-avatar">
-            <img src="assets/day.jpg" alt="Jhon assistant">
-          </div>
-          <div class="chat-bubble">
-            <p>The chatbot backend is coming soon. This window is ready for the Gemini API integration.</p>
           </div>
         </div>
       </div>
@@ -930,8 +1019,7 @@ if (type === "links") {
 if (type === "chatbot") {
   modal.querySelector(".chatbot-input-row").addEventListener("submit", (e) => {
     e.preventDefault();
-    const input = e.currentTarget.querySelector("input");
-    input.value = "";
+    sendChatbotMessage(modal);
   });
 }
 
