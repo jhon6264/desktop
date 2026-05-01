@@ -1,6 +1,9 @@
   
 const container = document.getElementById("floating-windows-container");
-const CHATBOT_API_URL = "https://jcrpbot.gt.tc/api/bot.php";
+const CHATBOT_API_URL = "https://jcrpbot.spyam17.workers.dev/";
+const CHATBOT_MAX_VISIBLE_MESSAGES = 10;
+const CHATBOT_MESSAGES_STORAGE_KEY = "jcrp_chatbot_messages";
+const CHATBOT_COOLDOWN_STORAGE_KEY = "jcrp_chatbot_cooldown_until";
 let chatbotConversationId = localStorage.getItem("jcrp_chatbot_conversation_id") || "";
 
 const aboutPortraitAssets = {
@@ -158,6 +161,7 @@ function animateHomeIcons() {
 function createChatMessage(role, text, isTyping = false) {
   const message = document.createElement("div");
   message.className = `chat-message ${role === "user" ? "user-message" : "bot-message"}`;
+  message.classList.toggle("is-typing", isTyping);
 
   if (role !== "user") {
     const avatar = document.createElement("div");
@@ -193,16 +197,143 @@ function createChatMessage(role, text, isTyping = false) {
   return message;
 }
 
+function trimChatMessages(messages) {
+  const visibleMessages = [...messages.querySelectorAll(".chat-message:not(.is-typing)")];
+  const excessCount = visibleMessages.length - CHATBOT_MAX_VISIBLE_MESSAGES;
+
+  if (excessCount <= 0) return;
+
+  visibleMessages.slice(0, excessCount).forEach((message) => message.remove());
+}
+
+function getStoredChatMessages() {
+  try {
+    const storedMessages = JSON.parse(localStorage.getItem(CHATBOT_MESSAGES_STORAGE_KEY) || "[]");
+    if (!Array.isArray(storedMessages)) return [];
+
+    return storedMessages
+      .filter((message) => ["user", "bot"].includes(message.role) && typeof message.text === "string")
+      .slice(-CHATBOT_MAX_VISIBLE_MESSAGES);
+  } catch {
+    return [];
+  }
+}
+
+function saveChatMessages(messages) {
+  const chatMessages = [...messages.querySelectorAll(".chat-message:not(.is-typing)")].map((message) => ({
+    role: message.classList.contains("user-message") ? "user" : "bot",
+    text: message.querySelector(".chat-bubble p")?.textContent || "",
+  })).filter((message) => message.text);
+
+  localStorage.setItem(
+    CHATBOT_MESSAGES_STORAGE_KEY,
+    JSON.stringify(chatMessages.slice(-CHATBOT_MAX_VISIBLE_MESSAGES))
+  );
+}
+
+function restoreChatMessages(messages) {
+  const storedMessages = getStoredChatMessages();
+
+  if (!storedMessages.length) return;
+
+  messages.innerHTML = "";
+  storedMessages.forEach((message) => {
+    messages.appendChild(createChatMessage(message.role, message.text));
+  });
+  trimChatMessages(messages);
+  scrollChatToBottom(messages);
+}
+
 function scrollChatToBottom(messages) {
   messages.scrollTop = messages.scrollHeight;
+}
+
+function formatChatbotCooldown(seconds) {
+  if (seconds >= 60) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+  }
+
+  return `${seconds}s`;
+}
+
+function getChatbotCooldownSeconds() {
+  const cooldownUntil = Number(localStorage.getItem(CHATBOT_COOLDOWN_STORAGE_KEY) || 0);
+  return Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+}
+
+function showChatbotLimitAlert(modal, message) {
+  const alert = modal.querySelector(".chatbot-limit-alert");
+  if (!alert) return;
+
+  alert.textContent = message;
+  alert.hidden = false;
+}
+
+function hideChatbotLimitAlert(modal) {
+  const alert = modal.querySelector(".chatbot-limit-alert");
+  if (!alert) return;
+
+  alert.hidden = true;
+  alert.textContent = "";
+}
+
+function setChatbotCooldown(retryAfter) {
+  const seconds = Math.max(1, Number(retryAfter) || 300);
+  localStorage.setItem(CHATBOT_COOLDOWN_STORAGE_KEY, String(Date.now() + seconds * 1000));
+}
+
+function updateChatbotCooldownState(modal) {
+  const form = modal.querySelector(".chatbot-input-row");
+  const input = form?.querySelector("input");
+  const button = form?.querySelector("button");
+  const remainingSeconds = getChatbotCooldownSeconds();
+
+  if (!form || !input || !button) return false;
+
+  if (remainingSeconds > 0) {
+    showChatbotLimitAlert(
+      modal,
+      `Message limit reached for now. Please wait ${formatChatbotCooldown(remainingSeconds)} before sending again.`
+    );
+    input.disabled = true;
+    button.disabled = true;
+    form.classList.add("is-cooling-down");
+    return true;
+  }
+
+  hideChatbotLimitAlert(modal);
+  form.classList.remove("is-cooling-down");
+  input.disabled = false;
+  button.disabled = false;
+  return false;
+}
+
+function startChatbotCooldownTimer(modal) {
+  if (modal.chatbotCooldownTimer) {
+    clearInterval(modal.chatbotCooldownTimer);
+  }
+
+  updateChatbotCooldownState(modal);
+
+  modal.chatbotCooldownTimer = setInterval(() => {
+    const isCoolingDown = updateChatbotCooldownState(modal);
+    if (!isCoolingDown) {
+      clearInterval(modal.chatbotCooldownTimer);
+      modal.chatbotCooldownTimer = null;
+    }
+  }, 1000);
 }
 
 function setChatbotPending(form, isPending) {
   const input = form.querySelector("input");
   const button = form.querySelector("button");
+  const modal = form.closest(".floating-window");
+  const isCoolingDown = modal ? getChatbotCooldownSeconds() > 0 : false;
 
-  input.disabled = isPending;
-  button.disabled = isPending;
+  input.disabled = isPending || isCoolingDown;
+  button.disabled = isPending || isCoolingDown;
   form.classList.toggle("is-pending", isPending);
 }
 
@@ -212,10 +343,13 @@ async function sendChatbotMessage(modal) {
   const messages = modal.querySelector(".chatbot-messages");
   const userMessage = input.value.trim();
 
+  if (updateChatbotCooldownState(modal)) return;
   if (!userMessage || form.classList.contains("is-pending")) return;
 
   input.value = "";
   messages.appendChild(createChatMessage("user", userMessage));
+  trimChatMessages(messages);
+  saveChatMessages(messages);
   const typingMessage = createChatMessage("bot", "", true);
   messages.appendChild(typingMessage);
   scrollChatToBottom(messages);
@@ -236,6 +370,13 @@ async function sendChatbotMessage(modal) {
     }
 
     const data = await response.json();
+    if (response.status === 429) {
+      const retryAfter = data.retry_after || response.headers.get("Retry-After") || 300;
+      setChatbotCooldown(retryAfter);
+      startChatbotCooldownTimer(modal);
+      throw new Error(`Message limit reached for now. Please wait ${formatChatbotCooldown(Number(retryAfter) || 300)} before sending again.`);
+    }
+
     if (!response.ok) {
       throw new Error(data.error || "The chatbot could not answer right now.");
     }
@@ -246,8 +387,12 @@ async function sendChatbotMessage(modal) {
     }
 
     typingMessage.replaceWith(createChatMessage("bot", data.reply || "I could not generate a reply."));
+    trimChatMessages(messages);
+    saveChatMessages(messages);
   } catch (error) {
     typingMessage.replaceWith(createChatMessage("bot", error.message || "Connection failed. Please try again later."));
+    trimChatMessages(messages);
+    saveChatMessages(messages);
   } finally {
     setChatbotPending(form, false);
     input.focus();
@@ -885,8 +1030,8 @@ if (type === "chatbot") {
     <div class="chatbot-modal-content">
       <div class="chatbot-status">
         <span class="chatbot-pulse"></span>
-        <span>Portfolio assistant</span>
       </div>
+      <div class="chatbot-limit-alert" hidden></div>
 
       <div class="chatbot-messages" aria-live="polite">
         <div class="chat-message bot-message">
@@ -1017,6 +1162,10 @@ if (type === "links") {
 }
 
 if (type === "chatbot") {
+  const chatbotMessages = modal.querySelector(".chatbot-messages");
+  restoreChatMessages(chatbotMessages);
+  startChatbotCooldownTimer(modal);
+
   modal.querySelector(".chatbot-input-row").addEventListener("submit", (e) => {
     e.preventDefault();
     sendChatbotMessage(modal);

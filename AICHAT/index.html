@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JCRP Bot API</title>
+  <style>
+    :root {
+      --black: #080808;
+      --panel: #111111;
+      --panel-soft: #181818;
+      --white: #ffffff;
+      --muted: #b8b8b8;
+      --line: #2b2b2b;
+      --red: #e50914;
+      --red-dark: #9f0710;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--white);
+      background: var(--black);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 18px clamp(18px, 5vw, 70px);
+      background: rgba(8, 8, 8, 0.88);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      font-weight: 800;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      background: var(--red);
+      color: var(--white);
+      font-size: 14px;
+      border-radius: 8px;
+    }
+
+    .brand span:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+      gap: clamp(28px, 5vw, 72px);
+      align-items: center;
+      padding: clamp(44px, 8vw, 86px) clamp(18px, 5vw, 70px) 32px;
+      min-height: calc(100vh - 75px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 34px;
+      height: 3px;
+      background: var(--red);
+      border-radius: 999px;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-size: clamp(42px, 7vw, 88px);
+      line-height: 0.94;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 670px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: clamp(16px, 2vw, 20px);
+      line-height: 1.6;
+    }
+
+    .endpoint-block {
+      margin-top: 30px;
+      padding: 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--red);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .endpoint-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    code,
+    pre {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+    }
+
+    .endpoint {
+      display: block;
+      overflow-x: auto;
+      color: var(--white);
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 16px;
+      color: var(--white);
+      background: var(--red);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--red-dark);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+      max-width: 670px;
+    }
+
+    .stat {
+      padding: 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: clamp(20px, 3vw, 30px);
+      line-height: 1.1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .tester {
+      background: var(--white);
+      color: var(--black);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .tester-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px;
+      color: var(--white);
+      background: var(--red);
+    }
+
+    .tester-head h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .status {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .tester-body {
+      padding: 18px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 116px;
+      resize: vertical;
+      padding: 14px;
+      color: var(--black);
+      background: #f7f7f7;
+      border: 1px solid #d7d7d7;
+      border-radius: 8px;
+      font: inherit;
+      line-height: 1.45;
+    }
+
+    .tester-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .helper {
+      color: #666666;
+      font-size: 13px;
+    }
+
+    .response {
+      min-height: 132px;
+      margin-top: 18px;
+      padding: 16px;
+      color: var(--white);
+      background: var(--black);
+      border-radius: 8px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .docs {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      gap: 24px;
+      padding: 22px clamp(18px, 5vw, 70px) 70px;
+    }
+
+    .doc-panel {
+      padding: 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .doc-panel h2 {
+      margin: 0 0 14px;
+      font-size: 24px;
+    }
+
+    .doc-panel p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 0;
+      padding: 18px;
+      color: #f5f5f5;
+      background: #050505;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      line-height: 1.55;
+    }
+
+    .fields {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .field code {
+      color: var(--white);
+    }
+
+    .data-list,
+    .chip-list,
+    .project-list,
+    .contact-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .data-item {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .data-item strong {
+      color: var(--white);
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .chip-list {
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .chip {
+      padding: 10px 12px;
+      color: var(--white);
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .project-card {
+      padding: 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .project-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .project-card p {
+      margin: 0 0 10px;
+    }
+
+    .project-meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .contact-link {
+      color: var(--white);
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .docs {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .endpoint-row,
+      .tester-actions,
+      .field,
+      .data-item {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">API</span>
+      <span>JCRP Bot API</span>
+    </div>
+    <a id="productionLink" class="nav-link" href="https://jcrpbot.gt.tc/api/bot.php">Production endpoint</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Production API endpoint</p>
+        <h1><span id="profileName">Jhon Cristopher R. Potestas</span> API</h1>
+        <p id="profileBio" class="lead">
+          A hosted JSON API that answers questions about Jhon's profile, skills, projects, education, and contact links.
+        </p>
+
+        <div class="endpoint-block">
+          <span class="label">Live API URL</span>
+          <div class="endpoint-row">
+            <code id="apiUrl" class="endpoint">https://jcrpbot.gt.tc/api/bot.php</code>
+            <button id="copyUrl" type="button">Copy</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <strong id="rateLimit">10/10</strong>
+            <span>Requests left</span>
+          </div>
+          <div class="stat">
+            <strong id="tokenUsage">0/220</strong>
+            <span>Latest output tokens</span>
+          </div>
+          <div class="stat">
+            <strong id="totalTokens">0</strong>
+            <span>Total tokens</span>
+          </div>
+          <div class="stat">
+            <strong id="modelName">Gemini</strong>
+            <span>Model</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="tester" aria-label="API tester">
+        <div class="tester-head">
+          <h2>Live API Tester</h2>
+          <span id="status" class="status">Ready</span>
+        </div>
+        <div class="tester-body">
+          <label class="label" for="message">Message</label>
+          <textarea id="message">who is jhon?</textarea>
+          <div class="tester-actions">
+            <span class="helper">The tester sends requests to the API endpoint on this site.</span>
+            <button id="sendButton" type="button">Send</button>
+          </div>
+          <div id="reply" class="response">The response will appear here.</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="docs" id="docs">
+      <div class="doc-panel">
+        <h2>Response Data</h2>
+        <p>
+          Gemini does not provide a simple account quota remaining value in this response. This API returns the local request limit and the actual token usage reported by Gemini for the latest answer.
+        </p>
+        <div class="fields">
+          <div class="field"><code>status</code><span id="apiStatusValue">Loading...</span></div>
+          <div class="field"><code>api_url</code><span id="apiUrlValue">Loading...</span></div>
+          <div class="field"><code>current_datetime</code><span id="apiDateTime">Loading...</span></div>
+          <div class="field"><code>max_message_length</code><span id="maxMessageLength">Loading...</span></div>
+          <div class="field"><code>reply</code><span>The chatbot answer.</span></div>
+          <div class="field"><code>conversation_id</code><span>Reuse this to continue the same chat.</span></div>
+          <div class="field"><code>rate_limit.display</code><span>Requests left, for example <code>9/10</code>.</span></div>
+          <div class="field"><code>usage.output_display</code><span>Output tokens used against max output tokens, for example <code>42/220</code>.</span></div>
+          <div class="field"><code>GET /api/bot.php</code><span>Returns current API status, request limit, and latest token usage without sending a chat message.</span></div>
+        </div>
+      </div>
+
+      <div class="doc-panel">
+        <h2>Example Request</h2>
+        <pre><code>fetch("https://jcrpbot.gt.tc/api/bot.php", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    message: "who is jhon?",
+    conversation_id: "optional_previous_id"
+  })
+})
+  .then((response) => response.json())
+  .then((data) => console.log(data));</code></pre>
+      </div>
+    </section>
+
+    <section class="docs" aria-label="Backend portfolio data">
+      <div class="doc-panel">
+        <h2>Profile From Backend</h2>
+        <div id="identityData" class="data-list"></div>
+        <h2 style="margin-top: 24px;">Focus Areas</h2>
+        <div id="focusAreas" class="chip-list"></div>
+      </div>
+
+      <div class="doc-panel">
+        <h2>Skills From Backend</h2>
+        <div id="skillData" class="data-list"></div>
+        <h2 style="margin-top: 24px;">Contacts</h2>
+        <div id="contactLinks" class="contact-list"></div>
+      </div>
+    </section>
+
+    <section class="docs" aria-label="Backend project data">
+      <div class="doc-panel" style="grid-column: 1 / -1;">
+        <h2>Projects From Backend</h2>
+        <div id="projectList" class="project-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js?v=10"></script>
+</body>
+</html>
