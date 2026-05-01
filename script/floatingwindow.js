@@ -4,6 +4,9 @@ const CHATBOT_API_URL = "https://jcrpbot.spyam17.workers.dev/";
 const CHATBOT_MAX_VISIBLE_MESSAGES = 10;
 const CHATBOT_MESSAGES_STORAGE_KEY = "jcrp_chatbot_messages";
 const CHATBOT_COOLDOWN_STORAGE_KEY = "jcrp_chatbot_cooldown_until";
+const CHATBOT_LOCKED_STORAGE_KEY = "jcrp_chatbot_locked";
+const CHATBOT_SENSITIVE_WARNING = "huyy bastos, ayaw ana part";
+const CHATBOT_INPUT_PLACEHOLDER = "Ask something...";
 let chatbotConversationId = localStorage.getItem("jcrp_chatbot_conversation_id") || "";
 
 const aboutPortraitAssets = {
@@ -289,15 +292,18 @@ function updateChatbotCooldownState(modal) {
   const input = form?.querySelector("input");
   const button = form?.querySelector("button");
   const remainingSeconds = getChatbotCooldownSeconds();
+  const isLocked = localStorage.getItem(CHATBOT_LOCKED_STORAGE_KEY) === "true";
 
   if (!form || !input || !button) return false;
 
   if (remainingSeconds > 0) {
+    const waitLabel = formatChatbotCooldown(remainingSeconds);
     showChatbotLimitAlert(
       modal,
-      `Message limit reached for now. Please wait ${formatChatbotCooldown(remainingSeconds)} before sending again.`
+      `Message limit reached for now. Please wait ${waitLabel} before sending again.`
     );
     input.disabled = true;
+    input.placeholder = `Please wait ${waitLabel}`;
     button.disabled = true;
     form.classList.add("is-cooling-down");
     return true;
@@ -305,8 +311,13 @@ function updateChatbotCooldownState(modal) {
 
   hideChatbotLimitAlert(modal);
   form.classList.remove("is-cooling-down");
-  input.disabled = false;
-  button.disabled = false;
+  input.disabled = isLocked;
+  button.disabled = isLocked;
+
+  if (!isLocked) {
+    input.placeholder = CHATBOT_INPUT_PLACEHOLDER;
+  }
+
   return false;
 }
 
@@ -331,10 +342,30 @@ function setChatbotPending(form, isPending) {
   const button = form.querySelector("button");
   const modal = form.closest(".floating-window");
   const isCoolingDown = modal ? getChatbotCooldownSeconds() > 0 : false;
+  const isLocked = localStorage.getItem(CHATBOT_LOCKED_STORAGE_KEY) === "true";
 
-  input.disabled = isPending || isCoolingDown;
-  button.disabled = isPending || isCoolingDown;
+  input.disabled = isPending || isCoolingDown || isLocked;
+  button.disabled = isPending || isCoolingDown || isLocked;
   form.classList.toggle("is-pending", isPending);
+}
+
+function lockChatbotInput(modal) {
+  const form = modal.querySelector(".chatbot-input-row");
+  const input = form.querySelector("input");
+  const button = form.querySelector("button");
+
+  localStorage.setItem(CHATBOT_LOCKED_STORAGE_KEY, "true");
+  input.value = "";
+  input.placeholder = "Chat locked";
+  input.disabled = true;
+  button.disabled = true;
+  form.classList.add("is-locked");
+}
+
+function restoreChatbotLock(modal) {
+  if (localStorage.getItem(CHATBOT_LOCKED_STORAGE_KEY) === "true") {
+    lockChatbotInput(modal);
+  }
 }
 
 async function sendChatbotMessage(modal) {
@@ -386,16 +417,23 @@ async function sendChatbotMessage(modal) {
       localStorage.setItem("jcrp_chatbot_conversation_id", chatbotConversationId);
     }
 
-    typingMessage.replaceWith(createChatMessage("bot", data.reply || "I could not generate a reply."));
+    const botReply = data.reply || "I could not generate a reply.";
+    typingMessage.replaceWith(createChatMessage("bot", botReply));
     trimChatMessages(messages);
     saveChatMessages(messages);
+
+    if (botReply.trim().toLowerCase() === CHATBOT_SENSITIVE_WARNING) {
+      lockChatbotInput(modal);
+    }
   } catch (error) {
     typingMessage.replaceWith(createChatMessage("bot", error.message || "Connection failed. Please try again later."));
     trimChatMessages(messages);
     saveChatMessages(messages);
   } finally {
     setChatbotPending(form, false);
-    input.focus();
+    if (!input.disabled) {
+      input.focus();
+    }
     scrollChatToBottom(messages);
   }
 }
@@ -1045,7 +1083,7 @@ if (type === "chatbot") {
       </div>
 
       <form class="chatbot-input-row">
-        <input type="text" placeholder="Ask something..." aria-label="Ask the chatbot" />
+        <input type="text" placeholder="${CHATBOT_INPUT_PLACEHOLDER}" aria-label="Ask the chatbot" />
         <button type="submit" aria-label="Send message">
           <i class="bi bi-send-fill"></i>
         </button>
