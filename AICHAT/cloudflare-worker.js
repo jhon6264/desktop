@@ -314,15 +314,6 @@ export default {
       }, 200, corsHeaders);
     }
 
-    const rateLimit = await enforceRateLimit(request, env);
-    if (rateLimit.blocked) {
-      return jsonResponse({
-        error: "Too many messages. Please wait before sending another one.",
-        retry_after: rateLimit.retry_after,
-        rate_limit: rateLimit.rate_limit,
-      }, 429, { ...corsHeaders, "Retry-After": String(rateLimit.retry_after) });
-    }
-
     if (!env.GEMINI_API_KEY) {
       return jsonResponse({ error: "Missing GEMINI_API_KEY secret in Cloudflare Worker settings" }, 500, corsHeaders);
     }
@@ -336,6 +327,16 @@ export default {
 
     const userMessage = String(data?.message || "").trim();
     const conversationId = normalizeConversationId(data?.conversation_id);
+    const visitorId = normalizeVisitorId(data?.visitor_id);
+    const rateLimit = await enforceRateLimit(request, env, visitorId);
+
+    if (rateLimit.blocked) {
+      return jsonResponse({
+        error: "Too many messages. Please wait before sending another one.",
+        retry_after: rateLimit.retry_after,
+        rate_limit: rateLimit.rate_limit,
+      }, 429, { ...corsHeaders, "Retry-After": String(rateLimit.retry_after) });
+    }
 
     if (!userMessage) {
       return jsonResponse({ error: "No message provided" }, 400, corsHeaders);
@@ -458,6 +459,15 @@ function getClientKey(request) {
     || "unknown";
 }
 
+function normalizeVisitorId(visitorId) {
+  const value = typeof visitorId === "string" ? visitorId.trim() : "";
+  return /^[a-zA-Z0-9_.:-]{8,80}$/.test(value) ? value : "";
+}
+
+function getRateLimitKey(request, visitorId = "") {
+  return visitorId ? `visitor:${visitorId}` : `ip:${getClientKey(request)}`;
+}
+
 function hasKV(env) {
   return Boolean(env?.JCRPBOT_KV);
 }
@@ -491,7 +501,7 @@ function cleanupRateLimit(now) {
 
 async function getRateLimitStatus(request, env) {
   const now = Date.now();
-  const key = getClientKey(request);
+  const key = getRateLimitKey(request);
   let requests;
 
   if (hasKV(env)) {
@@ -516,9 +526,9 @@ async function getRateLimitStatus(request, env) {
   };
 }
 
-async function enforceRateLimit(request, env) {
+async function enforceRateLimit(request, env, visitorId = "") {
   const now = Date.now();
-  const key = getClientKey(request);
+  const key = getRateLimitKey(request, visitorId);
   const kvKey = `rate-limit:${key}`;
   let requests;
 

@@ -8,6 +8,12 @@ const CHATBOT_LOCKED_STORAGE_KEY = "jcrp_chatbot_locked";
 const CHATBOT_SENSITIVE_WARNING = "huyy bastos, ayaw ana part";
 const CHATBOT_INPUT_PLACEHOLDER = "Ask something...";
 let chatbotConversationId = localStorage.getItem("jcrp_chatbot_conversation_id") || "";
+let chatbotVisitorId = localStorage.getItem("jcrp_chatbot_visitor_id") || "";
+
+if (!chatbotVisitorId) {
+  chatbotVisitorId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  localStorage.setItem("jcrp_chatbot_visitor_id", chatbotVisitorId);
+}
 
 const aboutPortraitAssets = {
   day: "assets/day.jpg",
@@ -392,6 +398,7 @@ async function sendChatbotMessage(modal) {
       body: JSON.stringify({
         message: userMessage,
         conversation_id: chatbotConversationId,
+        visitor_id: chatbotVisitorId,
       }),
     });
 
@@ -650,6 +657,10 @@ if (type === "tools") {
     <div class="tools-grid-item">
       <img src="assets/icons/hostinger.png" alt="Hostinger" class="tool-icon">
       <span>Hostinger</span>
+    </div>
+    <div class="tools-grid-item">
+      <i class="devicon-cloudflare-plain colored tool-icon"></i>
+      <span>Cloudflare Workers</span>
     </div>
   </div>
 
