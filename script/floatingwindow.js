@@ -4,6 +4,7 @@ const CHATBOT_API_URL = "https://jcrpbot.spyam17.workers.dev/";
 const CHATBOT_MAX_VISIBLE_MESSAGES = 10;
 const CHATBOT_MESSAGES_STORAGE_KEY = "jcrp_chatbot_messages";
 const CHATBOT_COOLDOWN_STORAGE_KEY = "jcrp_chatbot_cooldown_until";
+const CHATBOT_COOLDOWN_MESSAGE_STORAGE_KEY = "jcrp_chatbot_cooldown_message";
 const CHATBOT_LOCKED_STORAGE_KEY = "jcrp_chatbot_locked";
 const CHATBOT_SENSITIVE_WARNING = "huyy bastos, ayaw ana part";
 const CHATBOT_INPUT_PLACEHOLDER = "Ask something...";
@@ -288,9 +289,10 @@ function hideChatbotLimitAlert(modal) {
   alert.textContent = "";
 }
 
-function setChatbotCooldown(retryAfter) {
+function setChatbotCooldown(retryAfter, message = "Message limit reached for now. Please wait {time} before sending again.") {
   const seconds = Math.max(1, Number(retryAfter) || 300);
   localStorage.setItem(CHATBOT_COOLDOWN_STORAGE_KEY, String(Date.now() + seconds * 1000));
+  localStorage.setItem(CHATBOT_COOLDOWN_MESSAGE_STORAGE_KEY, message);
 }
 
 function updateChatbotCooldownState(modal) {
@@ -304,9 +306,11 @@ function updateChatbotCooldownState(modal) {
 
   if (remainingSeconds > 0) {
     const waitLabel = formatChatbotCooldown(remainingSeconds);
+    const cooldownMessage = localStorage.getItem(CHATBOT_COOLDOWN_MESSAGE_STORAGE_KEY)
+      || "Please wait {time} before sending again.";
     showChatbotLimitAlert(
       modal,
-      `Message limit reached for now. Please wait ${waitLabel} before sending again.`
+      cooldownMessage.replace("{time}", waitLabel)
     );
     input.disabled = true;
     input.placeholder = `Please wait ${waitLabel}`;
@@ -316,6 +320,7 @@ function updateChatbotCooldownState(modal) {
   }
 
   hideChatbotLimitAlert(modal);
+  localStorage.removeItem(CHATBOT_COOLDOWN_MESSAGE_STORAGE_KEY);
   form.classList.remove("is-cooling-down");
   input.disabled = isLocked;
   button.disabled = isLocked;
@@ -408,11 +413,15 @@ async function sendChatbotMessage(modal) {
     }
 
     const data = await response.json();
-    if (response.status === 429) {
+    if (response.status === 429 || response.status === 503) {
       const retryAfter = data.retry_after || response.headers.get("Retry-After") || 300;
-      setChatbotCooldown(retryAfter);
+      const isVisitorLimit = Boolean(data.rate_limit);
+      const cooldownTemplate = isVisitorLimit
+        ? "Message limit reached for now. Please wait {time} before sending again."
+        : "Gemini is busy or the API quota was reached. Please wait {time} before trying again.";
+      setChatbotCooldown(retryAfter, cooldownTemplate);
       startChatbotCooldownTimer(modal);
-      throw new Error(`Message limit reached for now. Please wait ${formatChatbotCooldown(Number(retryAfter) || 300)} before sending again.`);
+      throw new Error(cooldownTemplate.replace("{time}", formatChatbotCooldown(Number(retryAfter) || 300)));
     }
 
     if (!response.ok) {

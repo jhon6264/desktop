@@ -405,7 +405,7 @@ export default {
           error: "Gemini is temporarily busy or the API quota was reached. Please try again shortly.",
           retry_after: retryAfter,
           tried_models: getGeminiModels(),
-        }, 429, { ...corsHeaders, "Retry-After": String(retryAfter) });
+        }, 503, { ...corsHeaders, "Retry-After": String(retryAfter) });
       }
 
       return jsonResponse({ error: "Gemini could not answer right now. Please try again later." }, 502, corsHeaders);
