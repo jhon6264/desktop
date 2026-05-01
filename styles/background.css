@@ -18,9 +18,19 @@
   left: 2rem;
   z-index: 100;
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 1.2rem;
   font-size: clamp(2rem, 4vw, 2.8rem);
   cursor: pointer;
+}
+
+.toggle-group i {
+  width: 1em;
+  height: 1em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 /* Default: black icon in day mode */
@@ -29,8 +39,22 @@
   transition: color 0.3s ease;
 }
 
+#chatbot-toggle-icon {
+  color: black;
+  font-size: 0.82em;
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+
+#chatbot-toggle-icon:hover {
+  transform: scale(1.08);
+}
+
 /* White icon in night mode */
 body.dark #audio-toggle-icon {
+  color: white;
+}
+
+body.dark #chatbot-toggle-icon {
   color: white;
 }
 

@@ -80,6 +80,79 @@ function centerFloatingWindow(modal) {
   modal.style.top = `${Math.max(padding, Math.min(top, maxTop))}px`;
 }
 
+function runAnime(targets, params) {
+  if (!targets || (targets.length !== undefined && targets.length === 0)) return null;
+
+  if (window.anime?.animate) {
+    return window.anime.animate(targets, params);
+  }
+
+  if (typeof window.anime === "function") {
+    const legacyParams = { targets, ...params };
+    if (params.ease && !params.easing) {
+      legacyParams.easing = params.ease;
+      delete legacyParams.ease;
+    }
+    return window.anime(legacyParams);
+  }
+
+  return null;
+}
+
+function getStaggerDelay(step = 45, start = 0) {
+  if (window.anime?.stagger) {
+    return window.anime.stagger(step, { start });
+  }
+
+  return (target, index) => start + index * step;
+}
+
+function animateFloatingWindow(modal) {
+  if (!window.anime) return;
+
+  modal.classList.remove("expand-in");
+  runAnime(modal, {
+    opacity: [0, 1],
+    scale: [0.96, 1],
+    duration: 380,
+  });
+}
+
+function animateModalContent(modal, type) {
+  if (!window.anime) return;
+
+  const selectorsByType = {
+    about: ".about-section, .about-info-row",
+    tools: ".tools-modal-content h3, .tools-modal-content .tools-grid-item",
+    projects: ".project-section-title, .project-item",
+    links: ".icon-link, .link-warning",
+    contact: ".contact-modal-content label, .contact-modal-content input, .contact-modal-content textarea, .contact-modal-content button",
+    chatbot: ".chat-message, .chatbot-input-row",
+  };
+
+  const selector = selectorsByType[type] || ".modal-content > *";
+  const targets = modal.querySelectorAll(selector);
+
+  runAnime(targets, {
+    opacity: [0, 1],
+    translateY: [14, 0],
+    duration: 420,
+    delay: getStaggerDelay(45, 90),
+  });
+}
+
+function animateHomeIcons() {
+  if (!window.anime) return;
+
+  runAnime(document.querySelectorAll(".icon-item"), {
+    opacity: [0, 1],
+    translateY: [18, 0],
+    scale: [0.92, 1],
+    duration: 520,
+    delay: getStaggerDelay(70, 120),
+  });
+}
+
 function createFloatingWindow(type, anchorElement) {
   // Prevent duplicate windows
   const existing = container.querySelector(`.floating-window[data-type="${type}"]`);
@@ -705,6 +778,48 @@ if (type === "contact") {
   `;
 }
 
+if (type === "chatbot") {
+  modalContent = `
+    <div class="chatbot-modal-content">
+      <div class="chatbot-status">
+        <span class="chatbot-pulse"></span>
+        <span>Frontend preview</span>
+      </div>
+
+      <div class="chatbot-messages" aria-live="polite">
+        <div class="chat-message bot-message">
+          <div class="chat-avatar">
+            <img src="assets/day.jpg" alt="Jhon assistant">
+          </div>
+          <div class="chat-bubble">
+            <p>Hi, I’m Jhon’s assistant. Ask me anything about his skills, projects, or background.</p>
+          </div>
+        </div>
+        <div class="chat-message user-message">
+          <div class="chat-bubble">
+            <p>Can you tell me about Jhon?</p>
+          </div>
+        </div>
+        <div class="chat-message bot-message">
+          <div class="chat-avatar">
+            <img src="assets/day.jpg" alt="Jhon assistant">
+          </div>
+          <div class="chat-bubble">
+            <p>The chatbot backend is coming soon. This window is ready for the Gemini API integration.</p>
+          </div>
+        </div>
+      </div>
+
+      <form class="chatbot-input-row">
+        <input type="text" placeholder="Ask something..." aria-label="Ask the chatbot" />
+        <button type="submit" aria-label="Send message">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </form>
+    </div>
+  `;
+}
+
 
 
   modal.innerHTML = `
@@ -786,7 +901,11 @@ modal.querySelector(".close-btn").onclick = () => {
 
   // Append to DOM
   container.appendChild(modal);
-  requestAnimationFrame(() => centerFloatingWindow(modal));
+  requestAnimationFrame(() => {
+    centerFloatingWindow(modal);
+    animateFloatingWindow(modal);
+    animateModalContent(modal, type);
+  });
 
   if (type === "about") {
     setAboutPortrait();
@@ -805,6 +924,14 @@ if (type === "links") {
     link.addEventListener("click", () => {
     playSound('audio/closeclick.mp3');
     });
+  });
+}
+
+if (type === "chatbot") {
+  modal.querySelector(".chatbot-input-row").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = e.currentTarget.querySelector("input");
+    input.value = "";
   });
 }
 
@@ -882,7 +1009,9 @@ item.addEventListener("click", (e) => {
 });
 });
 
+document.getElementById("chatbot-toggle-icon")?.addEventListener("click", (e) => {
+  playSound('audio/click.mp3');
+  createFloatingWindow("chatbot", e.currentTarget);
+});
 
-
-
-
+animateHomeIcons();
