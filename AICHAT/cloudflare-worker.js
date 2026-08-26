@@ -1217,6 +1217,11 @@ async function callGeminiWithFallback(payload, apiKey) {
   }
 
   const geminiStatus = lastAttempt?.result?.error?.status || "";
+  console.log("Gemini failed:", JSON.stringify({
+    httpStatus: lastAttempt?.status,
+    apiStatus: geminiStatus,
+    message: lastAttempt?.result?.error?.message,
+  }));
   return {
     ok: false,
     retryable: shouldTryNextGeminiModel(lastAttempt?.status || 0, geminiStatus),
