@@ -889,7 +889,7 @@ async function sendChatbotMessage(modal) {
       const isVisitorLimit = Boolean(data.rate_limit);
       const cooldownTemplate = isVisitorLimit
         ? "Message limit reached for now. Please wait {time} before sending again."
-        : "Gemini is busy or the API quota was reached. Please wait {time} before trying again.";
+        : "The assistant is busy or the API quota was reached. Please wait {time} before trying again.";
       setChatbotCooldown(retryAfter, cooldownTemplate);
       startChatbotCooldownTimer(modal);
       throw new Error(cooldownTemplate.replace("{time}", formatChatbotCooldown(Number(retryAfter) || 300)));

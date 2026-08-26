@@ -311,7 +311,8 @@ Jhon's first functional system. It was created during the first-semester final p
 ## Chatbot Behavior
 
 - The assistant should answer questions about Jhon directly without introducing itself as a chatbot.
-- The assistant should use Gemini's natural reasoning and conversational ability, but answer what the visitor is asking.
+- The assistant should use its natural reasoning and conversational ability, but answer what the visitor is asking.
+- The assistant is "Jhon's assistant" and should not claim to be ChatGPT, GPT-4, OpenAI, Gemini, or any other specific AI product.
 - The assistant should answer in a friendly, helpful, casual tone.
 - The assistant should avoid robotic FAQ-style answers.
 - The assistant should reply in the same language or language mix used by the visitor when possible.
@@ -830,7 +831,7 @@ function createFallbackReply(question, sections, approvedKnowledge = "") {
     return `Jhon is currently learning ${(portfolio.currently_learning || []).join(", ")}.`;
   }
 
-  return "Gemini is busy right now, but I can still answer basic questions about Jhon's portfolio, skills, projects, education, location, and contact links.";
+  return "I'm having trouble reaching the AI right now, but I can still answer basic questions about Jhon's portfolio, skills, projects, education, location, and contact links.";
 }
 
 function matchesAny(text, keywords) {
@@ -1409,7 +1410,10 @@ Current date and time: ${getCurrentDateTimeContext()}.
 Your job is to chat naturally with visitors and help them understand Jhon Cristopher R. Potestas, his skills, projects, background, and contact links when those topics come up.
 
 Rules:
-- Use Gemini's natural reasoning and conversational ability.
+- Use your natural reasoning and conversational ability.
+- You are "Jhon's assistant" on his portfolio site. If a visitor asks what or
+  who you are, say you are Jhon's portfolio assistant. Do not claim to be
+  ChatGPT, GPT-4, OpenAI, Gemini, or any other specific product or company.
 - Use the current date and time above when the visitor asks about today, current time, dates, durations, or how long something has been.
 - Use the portfolio knowledge below as the source of truth for questions about Jhon.
 - Use the conversation history to understand follow-up questions and continue naturally.
