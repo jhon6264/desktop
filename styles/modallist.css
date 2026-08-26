@@ -32,33 +32,19 @@
 .about-portrait {
   position: relative;
   width: clamp(86px, 12vw, 124px);
-  height: clamp(118px, 17vw, 168px);
+  aspect-ratio: 1122 / 1402;
   flex: 0 0 auto;
   overflow: hidden;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.about-portrait-img,
-.about-portrait-video {
+.about-portrait-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.about-portrait-img {
-  transform: scale(1.4);
-}
-
-.about-portrait-video {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.about-portrait-video.is-playing {
-  opacity: 1;
 }
 
 /* PERSONAL INFO TEXT */
@@ -671,11 +657,53 @@ body.dark .project-item img:hover {
 .project-separator {
   width: 100%;
   border: none;
-  border-top: 2px dashed rgb(61, 61, 61); 
-  margin: 2.75rem 0 2rem; 
+  border-top: 2px dashed rgb(61, 61, 61);
+  margin: 2.75rem 0 2rem;
 }
 body.dark .project-separator {
   border-top-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Highlight pulse when the chatbot navigates to a project */
+.project-item-highlight {
+  border-radius: 0.75rem;
+  animation: projectItemHighlight 1.8s ease;
+}
+
+@keyframes projectItemHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.6);
+    background-color: rgba(255, 140, 0, 0.18);
+  }
+  60% {
+    box-shadow: 0 0 0 14px rgba(255, 140, 0, 0);
+    background-color: rgba(255, 140, 0, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 140, 0, 0);
+    background-color: transparent;
+  }
+}
+
+/* Highlight pulse when the chatbot navigates to an About section or Tools category */
+.tools-category-highlight {
+  border-radius: 0.6rem;
+  animation: toolsCategoryHighlight 1.8s ease;
+}
+
+@keyframes toolsCategoryHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.55);
+    background-color: rgba(255, 140, 0, 0.18);
+  }
+  60% {
+    box-shadow: 0 0 0 10px rgba(255, 140, 0, 0);
+    background-color: rgba(255, 140, 0, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 140, 0, 0);
+    background-color: transparent;
+  }
 }
 
 
@@ -696,6 +724,17 @@ body.dark .project-separator {
 .view-project-btn:hover {
   background-color: #e67e00;
   transform: scale(1.03);
+}
+
+/* Inactive button for projects that are not downloadable yet */
+.view-project-btn.is-disabled,
+body.dark .view-project-btn.is-disabled {
+  background-color: #9e9e9e;
+  color: #f1f1f1;
+  cursor: not-allowed;
+  filter: none;
+  pointer-events: none;
+  opacity: 0.85;
 }
 
 /* 🌙 Dark mode style */
@@ -757,13 +796,18 @@ body.dark .view-project-btn:hover {
 }
 
 .icon-link:hover {
-  transform: scale(1.05);
+  transform: scale(1.18) translateY(-4px);
+}
+
+.icon-link:hover i {
+  filter: drop-shadow(0 8px 4px rgba(92, 92, 92, 0.5));
 }
 
 .icon-link i {
   font-size: clamp(3rem, 5vw, 4rem);
   margin-bottom: 0.5rem;
   filter: drop-shadow(0 5px 1px rgba(92, 92, 92, 0.6));
+  transition: filter 0.3s ease;
 }
 .label {
   font-size: clamp(10px, 2vw, 1rem);
@@ -780,6 +824,10 @@ body.dark .icon-link {
 
 body.dark .icon-link i {
   filter: drop-shadow(0 5px 0.5px rgba(74, 74, 74, 0.5));
+}
+
+body.dark .icon-link:hover i {
+  filter: drop-shadow(0 8px 4px rgba(255, 255, 255, 0.25));
 }
 
 /* Warning */
@@ -869,10 +917,192 @@ body:not(.dark) .link-warning {
   background: darkorange;
 }
 
+/* Contact unavailable overlay */
+.contact-disabled-wrapper {
+  position: relative;
+  min-height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+}
+
+.contact-modal-content.is-disabled {
+  filter: blur(4px);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+.contact-unavailable-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.contact-unavailable-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 100%;
+  padding: clamp(1.1rem, 3vw, 1.75rem);
+  border-radius: 1rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.18);
+}
+
+.contact-unavailable-title {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.4vw, 1.4rem);
+  font-weight: 700;
+  color: #ff8c00;
+}
+
+.contact-unavailable-text {
+  margin: 0;
+  font-size: clamp(0.85rem, 1.2vw, 0.98rem);
+  color: #333;
+}
+
+.contact-email-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.6rem;
+  background: rgba(255, 165, 0, 0.14);
+}
+
+.contact-email {
+  font-family: 'Roboto Mono', monospace;
+  font-size: clamp(0.78rem, 1.15vw, 0.95rem);
+  font-weight: 600;
+  color: #111;
+  overflow-wrap: anywhere;
+}
+
+.contact-copy-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 0.45rem;
+  background: #ff8c00;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.contact-copy-btn:hover {
+  background: #e67e00;
+  transform: translateY(-1px);
+}
+
+.contact-copy-btn.is-copied {
+  background: #2e9e5b;
+}
+
+.contact-or-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  margin: 0.15rem 0;
+  color: #777;
+  font-size: 0.85rem;
+}
+
+.contact-or-divider::before,
+.contact-or-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed rgba(0, 0, 0, 0.28);
+}
+
+.contact-chatbot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 0.6rem;
+  background: #ff8c00;
+  color: #fff;
+  font-size: clamp(0.85rem, 1.15vw, 0.95rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.contact-chatbot-btn:hover {
+  background: #e67e00;
+  transform: scale(1.03);
+}
+
 /* 🌙 Night Mode Styles */
 body.dark .contact-modal-content {
   background-color: #121212;
   color: #f1f1f1;
+}
+
+body.dark .contact-unavailable-overlay {
+  background: rgba(10, 10, 10, 0.45);
+}
+
+body.dark .contact-unavailable-card {
+  background: rgba(24, 24, 24, 0.94);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+}
+
+body.dark .contact-unavailable-title {
+  color: #24bbd6;
+}
+
+body.dark .contact-unavailable-text {
+  color: #d6d6d6;
+}
+
+body.dark .contact-email-row {
+  background: rgba(18, 101, 117, 0.35);
+}
+
+body.dark .contact-email {
+  color: #ffffff;
+}
+
+body.dark .contact-copy-btn,
+body.dark .contact-chatbot-btn {
+  background: rgb(18, 100, 117);
+}
+
+body.dark .contact-copy-btn:hover,
+body.dark .contact-chatbot-btn:hover {
+  background: rgb(13, 69, 81);
+}
+
+body.dark .contact-copy-btn.is-copied {
+  background: #2e9e5b;
+}
+
+body.dark .contact-or-divider {
+  color: #999;
+}
+
+body.dark .contact-or-divider::before,
+body.dark .contact-or-divider::after {
+  border-top-color: rgba(255, 255, 255, 0.3);
 }
 
 body.dark .contact-modal-content input,
@@ -904,6 +1134,9 @@ body.dark .contact-modal-content .send-btn:hover {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   padding: 1.25rem 0 1.25rem 1.25rem;
   gap: 1rem;
   font-family: 'Roboto Mono', monospace;
@@ -951,9 +1184,13 @@ body.dark .contact-modal-content .send-btn:hover {
   flex-direction: column;
   gap: 0.85rem;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding-right: 1.25rem;
+  overflow-x: hidden;
+  /* Trailing space so buttons/cards on the last message aren't clipped
+     against the composer. */
+  padding: 0.25rem 1.25rem 0.75rem 0;
 }
 
 .chat-message {
@@ -961,6 +1198,12 @@ body.dark .contact-modal-content .send-btn:hover {
   gap: 0.65rem;
   align-items: flex-end;
   max-width: 100%;
+  min-width: 0;
+}
+
+/* Bare bot replies can be tall, so pin the avatar to the first line. */
+.bot-message {
+  align-items: flex-start;
 }
 
 .user-message {
@@ -986,22 +1229,30 @@ body.dark .contact-modal-content .send-btn:hover {
 }
 
 .chat-bubble {
-  max-width: min(78%, 460px);
-  padding: 0.75rem 0.9rem;
-  border-radius: 1rem;
-  background-color: rgba(255, 165, 0, 0.15);
+  min-width: 0;
   color: #111;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.16);
+  /* Long unbroken strings (URLs) must wrap instead of widening the bubble. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
+/* Bot replies sit directly on the chat background (ChatGPT/Claude style) so
+   markdown lists, project cards, and buttons get the full width. */
 .bot-message .chat-bubble {
-  border-bottom-left-radius: 0.25rem;
+  flex: 1 1 auto;
+  padding: 0.15rem 0 0;
+  background-color: transparent;
+  box-shadow: none;
 }
 
 .user-message .chat-bubble {
+  max-width: min(78%, 460px);
+  padding: 0.75rem 0.9rem;
+  border-radius: 1rem;
+  border-bottom-right-radius: 0.25rem;
   background-color: #ff8c00;
   color: #ffffff;
-  border-bottom-right-radius: 0.25rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.16);
 }
 
 .chat-bubble p {
@@ -1010,8 +1261,142 @@ body.dark .contact-modal-content .send-btn:hover {
   line-height: 1.45;
 }
 
-.typing-bubble {
+/* Markdown rendered inside bot bubbles */
+.chat-bubble-body p + p {
+  margin-top: 0.5rem;
+}
+
+.chat-bubble-body strong {
+  font-weight: 700;
+}
+
+.chat-bubble-body em {
+  font-style: italic;
+}
+
+.chat-bubble-body code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.3rem;
+  background-color: rgba(0, 0, 0, 0.1);
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.9em;
+}
+
+.chat-md-list {
+  margin: 0.45rem 0 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chat-md-list li {
+  font-size: clamp(0.85rem, 1.1vw, 0.95rem);
+  line-height: 1.45;
+}
+
+/* Blinking caret while the reply types out */
+.chat-message.is-writing .chat-bubble-body > :last-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 0.12em;
+  vertical-align: text-bottom;
+  background-color: currentColor;
+  opacity: 0.65;
+  animation: chatCaretBlink 0.9s steps(1) infinite;
+}
+
+@keyframes chatCaretBlink {
+  0%, 50% { opacity: 0.65; }
+  51%, 100% { opacity: 0; }
+}
+
+.chat-message.is-writing {
+  cursor: pointer;
+}
+
+.chat-bubble-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  /* Room for the buttons' drop-shadow so it isn't clipped. */
+  margin-bottom: 0.35rem;
+}
+
+.chat-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: #ff8c00;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: clamp(0.75rem, 1vw, 0.82rem);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 1px rgba(92, 92, 92, 0.5));
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.chat-link-btn:hover {
+  background-color: #e67e00;
+  transform: scale(1.03);
+}
+
+.chat-link-btn i {
+  font-size: 0.75em;
+}
+
+/* "View in Portfolio" now matches the solid View Portfolio / Download App
+   buttons in the Projects window; kept as a modifier for a subtler shade. */
+.chat-link-btn-outline {
+  background-color: #ffa233;
+}
+
+.chat-link-btn-outline:hover {
+  background-color: #ff8c00;
+}
+
+.chat-project-card {
+  margin-top: 0.6rem;
+  max-width: min(100%, 340px);
+}
+
+.chat-project-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.65rem;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.chat-project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+/* The thinking dots keep a small pill so they read as a distinct state now
+   that bot replies themselves have no background. */
+.bot-message .chat-bubble.typing-bubble {
+  flex: 0 0 auto;
   min-width: 4.2rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 1rem;
+  border-bottom-left-radius: 0.25rem;
+  background-color: rgba(255, 165, 0, 0.15);
+}
+
+body.dark .bot-message .chat-bubble.typing-bubble {
+  background-color: rgba(18, 101, 117, 0.838);
 }
 
 .typing-dots {
@@ -1080,10 +1465,17 @@ body.dark .contact-modal-content .send-btn:hover {
   filter: none;
 }
 
-body.dark .chatbot-status,
-body.dark .chat-bubble {
+body.dark .chatbot-status {
   background-color: rgba(18, 101, 117, 0.838);
   color: #ffffff;
+}
+
+body.dark .chat-bubble {
+  color: #ffffff;
+}
+
+body.dark .bot-message .chat-bubble {
+  background-color: transparent;
 }
 
 body.dark .chatbot-limit-alert {
@@ -1103,10 +1495,32 @@ body.dark .chatbot-input-row button {
   color: #ffffff;
 }
 
+body.dark .chat-link-btn {
+  background-color: rgb(18, 100, 117);
+  color: #ffffff;
+}
+
+body.dark .chat-link-btn:hover {
+  background-color: rgb(13, 69, 81);
+}
+
+body.dark .chat-link-btn-outline {
+  background-color: #17879e;
+  color: #ffffff;
+}
+
+body.dark .chat-link-btn-outline:hover {
+  background-color: rgb(18, 100, 117);
+}
+
 body.dark .chatbot-input-row input {
   background-color: rgba(18, 18, 18, 0.78);
   color: #ffffff;
   border-color: #444;
+}
+
+body.dark .chat-bubble-body code {
+  background-color: rgba(255, 255, 255, 0.14);
 }
 
 @keyframes chatbotPulse {

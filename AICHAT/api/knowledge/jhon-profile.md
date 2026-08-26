@@ -176,6 +176,14 @@ Jhon is an Information Technology student who enjoys building interactive websit
 
 ## Projects
 
+### Professional Portfolio
+
+Jhon's professional portfolio, inspired by Bryl's portfolio design. It's static and simple, but clean, informative, and professional.
+
+- Type: Website
+- Technologies: HTML, CSS, JavaScript, Tailwind CSS
+- Link: https://jhonpotestas.vercel.app/
+
 ### First Online Portfolio
 
 Jhon's first static web portfolio. It includes personal information such as name, education, achievements, and links to social media platforms. It was created during his second year as a midterm project.
@@ -184,13 +192,12 @@ Jhon's first static web portfolio. It includes personal information such as name
 - Technologies: HTML, CSS, JavaScript, Bootstrap 5, EmailJS
 - Link: https://jhon6264.github.io/portfolio/
 
-### PokeTalk
+### DoMATS
 
-A Pokemon-themed web app that uses PokeAPI data to show Pokemon information in a simple hosted PHP project. It was built as a lightweight API practice project and deployed through InfinityFree.
+An ongoing capstone project — a document management and tracking system for St. Mary's College of Bansalan, Inc. It streamlines multi-signatory document signing, cuts manual errands, and helps organize and secure records.
 
-- Type: Website / API practice project
-- Technologies: PHP, PokeAPI, InfinityFree
-- Link: https://poketalk.free.nf/
+- Type: Web platform (capstone project)
+- Technologies: React, Laravel, TypeScript, JavaScript, Tailwind CSS, MySQL, WebSocket, OCR Tesseract
 
 ### RiderX
 
@@ -198,6 +205,14 @@ A web-based motorcycle rider platform concept with a Laravel backend and a moder
 
 - Type: Web platform concept
 - Technologies: HTML, CSS, JavaScript, Blade, React, Laravel, Tailwind CSS, anime.js, MySQL
+
+### PokeTalk
+
+A Pokemon-themed web app that uses PokeAPI data to show Pokemon information in a simple hosted PHP project. It was built as a lightweight API practice project and deployed through InfinityFree.
+
+- Type: Website / API practice project
+- Technologies: PHP, PokeAPI, InfinityFree
+- Link: https://poketalk.free.nf/
 
 ### Swaggy Adventure
 
@@ -212,6 +227,22 @@ An interactive 3D Minecraft-style game where the player is chased by ball enemie
 
 - Type: Game development project
 - Technologies: Godot Engine, Blender, ElevenLabs, Figma
+
+### Owly
+
+A personal companion mobile app for managing notes, friendships, and important dates in one place. It integrates the Gemma 4 E2B IT AI model so users can chat with an AI assistant fully offline, keeping interactions accessible and private.
+
+- Type: Mobile app
+- Technologies: React, React Native, TypeScript, Huggingface
+- Availability: The app download is not available yet.
+
+### CodeQuiz
+
+A mobile learning app that helps IT freshmen learn and practice programming through interactive lessons and quizzes. It covers beginner topics like HTML, CSS, and JavaScript, with quizzes that scale from basic to more challenging questions.
+
+- Type: Mobile learning app
+- Technologies: React, Expo, TypeScript
+- Link: https://drive.google.com/drive/folders/1UpClqFDglTAjfJTgivVc_6Wo15eSL7Qc?usp=sharing
 
 ### SmartLock
 

@@ -391,11 +391,15 @@ function parseProjectSection(array $section): array
 function buildPortfolioData(array $sections): array
 {
     $projectTitles = [
+        "Professional Portfolio",
         "First Online Portfolio",
-        "PokeTalk",
+        "DoMATS",
         "RiderX",
+        "PokeTalk",
         "Swaggy Adventure",
         "Pakman Lite",
+        "Owly",
+        "CodeQuiz",
         "SmartLock",
         "Basketball Payment Tracker",
         "Pizza de Uno",
@@ -465,11 +469,15 @@ function selectRelevantKnowledge(array $sections, string $question): string
 
     $questionLower = strtolower($question);
     $projectTitles = [
+        "Professional Portfolio",
         "First Online Portfolio",
-        "PokeTalk",
+        "DoMATS",
         "RiderX",
+        "PokeTalk",
         "Swaggy Adventure",
         "Pakman Lite",
+        "Owly",
+        "CodeQuiz",
         "SmartLock",
         "Basketball Payment Tracker",
         "Pizza de Uno",
@@ -512,8 +520,8 @@ function selectRelevantKnowledge(array $sections, string $question): string
         "australia" => ["Family"],
         "davao" => ["Family"],
         "game" => ["Game Development", "Swaggy Adventure", "Pakman Lite"],
-        "mobile" => ["Mobile Development", "SmartLock", "Basketball Payment Tracker", "Pizza de Uno"],
-        "app" => ["Mobile Development", "SmartLock", "Basketball Payment Tracker", "Pizza de Uno"],
+        "mobile" => ["Mobile Development", "Owly", "CodeQuiz", "SmartLock", "Basketball Payment Tracker", "Pizza de Uno"],
+        "app" => ["Mobile Development", "Owly", "CodeQuiz", "SmartLock", "Basketball Payment Tracker", "Pizza de Uno"],
     ];
 
     foreach ($categoryMap as $keyword => $titles) {

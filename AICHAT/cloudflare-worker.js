@@ -6,6 +6,7 @@ const MAX_HISTORY_MESSAGES = 10;
 const MAX_OUTPUT_TOKENS = 220;
 const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_FALLBACK_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash"];
+const GROQ_FALLBACK_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "qwen/qwen3-32b"];
 
 const rateLimitStore = new Map();
 const conversationStore = new Map();
@@ -86,7 +87,7 @@ Jhon is an Information Technology student who enjoys building interactive websit
 - Edrian is a gay friend who is also a BSIT student and a talented artist.
 - Van April is a bisexual friend who is a BSIT student and a skilled programmer.
 - Kent is a straight friend who is a BSIT student but he was under with his Girlfriend
-- Mark is a friend who have many girls
+- Mark Torres is a friend who have many girls
 
 ## Family
 
@@ -196,6 +197,14 @@ Jhon is an Information Technology student who enjoys building interactive websit
 
 ## Projects
 
+### Professional Portfolio
+
+Jhon's professional portfolio, inspired by Bryl's portfolio design. It's static and simple, but clean, informative, and professional.
+
+- Type: Website
+- Technologies: HTML, CSS, JavaScript, Tailwind CSS
+- Link: https://jhonpotestas.vercel.app/
+
 ### First Online Portfolio
 
 Jhon's first static web portfolio. It includes personal information such as name, education, achievements, and links to social media platforms. It was created during his second year as a midterm project.
@@ -204,13 +213,12 @@ Jhon's first static web portfolio. It includes personal information such as name
 - Technologies: HTML, CSS, JavaScript, Bootstrap 5, EmailJS
 - Link: https://jhon6264.github.io/portfolio/
 
-### PokeTalk
+### DoMATS
 
-A Pokemon-themed web app that uses PokeAPI data to show Pokemon information in a simple hosted PHP project. It was built as a lightweight API practice project and deployed through InfinityFree.
+An ongoing capstone project — a document management and tracking system for St. Mary's College of Bansalan, Inc. It streamlines multi-signatory document signing, cuts manual errands, and helps organize and secure records.
 
-- Type: Website / API practice project
-- Technologies: PHP, PokeAPI, InfinityFree
-- Link: https://poketalk.free.nf/
+- Type: Web platform (capstone project)
+- Technologies: React, Laravel, TypeScript, JavaScript, Tailwind CSS, MySQL, WebSocket, OCR Tesseract
 
 ### RiderX
 
@@ -218,6 +226,14 @@ A web-based motorcycle rider platform concept with a Laravel backend and a moder
 
 - Type: Web platform concept
 - Technologies: HTML, CSS, JavaScript, Blade, React, Laravel, Tailwind CSS, anime.js, MySQL
+
+### PokeTalk
+
+A Pokemon-themed web app that uses PokeAPI data to show Pokemon information in a simple hosted PHP project. It was built as a lightweight API practice project and deployed through InfinityFree.
+
+- Type: Website / API practice project
+- Technologies: PHP, PokeAPI, InfinityFree
+- Link: https://poketalk.free.nf/
 
 ### Swaggy Adventure
 
@@ -232,6 +248,22 @@ An interactive 3D Minecraft-style game where the player is chased by ball enemie
 
 - Type: Game development project
 - Technologies: Godot Engine, Blender, ElevenLabs, Figma
+
+### Owly
+
+A personal companion mobile app for managing notes, friendships, and important dates in one place. It integrates the Gemma 4 E2B IT AI model so users can chat with an AI assistant fully offline, keeping interactions accessible and private.
+
+- Type: Mobile app
+- Technologies: React, React Native, TypeScript, Huggingface
+- Availability: The app download is not available yet.
+
+### CodeQuiz
+
+A mobile learning app that helps IT freshmen learn and practice programming through interactive lessons and quizzes. It covers beginner topics like HTML, CSS, and JavaScript, with quizzes that scale from basic to more challenging questions.
+
+- Type: Mobile learning app
+- Technologies: React, Expo, TypeScript
+- Link: https://drive.google.com/drive/folders/1UpClqFDglTAjfJTgivVc_6Wo15eSL7Qc?usp=sharing
 
 ### SmartLock
 
@@ -348,24 +380,6 @@ export default {
       }, 400, corsHeaders);
     }
 
-    if (isSensitivePersonalQuestion(userMessage)) {
-      const reply = "huyy bastos, ayaw ana part";
-      const usage = await loadLastUsage(env);
-      const history = await loadConversation(env, conversationId);
-
-      history.push({ role: "user", text: userMessage });
-      history.push({ role: "model", text: reply });
-      await saveConversation(env, conversationId, history);
-
-      return jsonResponse({
-        reply,
-        conversation_id: conversationId,
-        model: "local-safety-filter",
-        rate_limit: rateLimit.rate_limit,
-        usage,
-      }, 200, corsHeaders);
-    }
-
     const approvedKnowledge = await getApprovedKnowledge(env);
     const portfolioKnowledge = [
       selectRelevantKnowledge(knowledgeSections, userMessage),
@@ -396,24 +410,33 @@ export default {
       },
     };
 
-    const geminiResult = await callGeminiWithFallback(payload, env.GEMINI_API_KEY);
+    const aiResult = await callAiWithFallback(payload, env, {
+      systemPrompt,
+      contents,
+    });
 
-    if (!geminiResult.ok) {
-      if (geminiResult.retryable) {
-        const retryAfter = geminiResult.retryAfter || 30;
-        return jsonResponse({
-          error: "Gemini is temporarily busy or the API quota was reached. Please try again shortly.",
-          retry_after: retryAfter,
-          tried_models: getGeminiModels(),
-        }, 503, { ...corsHeaders, "Retry-After": String(retryAfter) });
-      }
+    if (!aiResult.ok) {
+      const reply = createFallbackReply(userMessage, knowledgeSections, approvedKnowledge);
+      const usage = await loadLastUsage(env);
 
-      return jsonResponse({ error: "Gemini could not answer right now. Please try again later." }, 502, corsHeaders);
+      history.push({ role: "user", text: userMessage });
+      history.push({ role: "model", text: reply });
+      await saveConversation(env, conversationId, history);
+      await saveAutoApprovedLearning(env, userMessage);
+
+      return jsonResponse({
+        reply,
+        conversation_id: conversationId,
+        model: "local-fallback",
+        rate_limit: rateLimit.rate_limit,
+        usage,
+        fallback: true,
+        tried_models: aiResult.tried_models,
+      }, 200, corsHeaders);
     }
 
-    const result = geminiResult.result;
-    const reply = cleanReply(result?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I could not generate a response.");
-    const usage = buildUsageSummary(result?.usageMetadata || {});
+    const reply = cleanReply(aiResult.reply || "Sorry, I could not generate a response.");
+    const usage = aiResult.usage || getDefaultUsageSummary();
     await saveLastUsage(env, usage);
 
     history.push({ role: "user", text: userMessage });
@@ -433,7 +456,8 @@ export default {
     return jsonResponse({
       reply,
       conversation_id: conversationId,
-      model: geminiResult.model,
+      model: aiResult.model,
+      provider: aiResult.provider,
       rate_limit: rateLimit.rate_limit,
       usage,
     }, 200, corsHeaders);
@@ -703,11 +727,15 @@ function parseProjectSection(section) {
 
 function buildPortfolioData(sections) {
   const projectTitles = [
+    "Professional Portfolio",
     "First Online Portfolio",
-    "PokeTalk",
+    "DoMATS",
     "RiderX",
+    "PokeTalk",
     "Swaggy Adventure",
     "Pakman Lite",
+    "Owly",
+    "CodeQuiz",
     "SmartLock",
     "Basketball Payment Tracker",
     "Pizza de Uno",
@@ -735,6 +763,109 @@ function buildPortfolioData(sections) {
   };
 }
 
+function createFallbackReply(question, sections, approvedKnowledge = "") {
+  const portfolio = buildPortfolioData(sections);
+  const questionText = String(question || "").toLowerCase();
+  const learnedMatch = findLearnedKnowledgeMatch(questionText, approvedKnowledge);
+
+  if (learnedMatch) {
+    return learnedMatch;
+  }
+
+  if (matchesAny(questionText, ["who is", "about jhon", "jhon", "bio", "background"])) {
+    return `${portfolio.identity.full_name || "Jhon Cristopher R. Potestas"} is a ${portfolio.identity.year_level || "BS Information Technology student"} focused on ${portfolio.identity.main_focus || "web, app, game, UI, and system development"}. ${portfolio.short_bio || ""}`.trim();
+  }
+
+  if (matchesAny(questionText, ["location", "where", "live", "from", "address"])) {
+    return `Jhon is from ${portfolio.identity.location || "Balnate, Magsaysay, Davao del Sur, Philippines"}.`;
+  }
+
+  if (matchesAny(questionText, ["skill", "stack", "tool", "technology", "tech", "frontend", "backend", "storage", "hosting", "mobile", "game"])) {
+    const skills = [
+      ...(portfolio.development_stack || []),
+      ...(portfolio.frontend_tools || []),
+      ...(portfolio.backend_tools || []),
+      ...(portfolio.storage_and_hosting || []),
+      ...(portfolio.mobile_development || []),
+      ...(portfolio.game_development || []),
+    ];
+
+    return `Jhon works with ${dedupe(skills).slice(0, 18).join(", ")}.`;
+  }
+
+  if (matchesAny(questionText, ["project", "portfolio", "poketalk", "riderx", "smartlock", "pizza", "basketball", "pakman", "swaggy", "registration"])) {
+    const matchedProject = findProjectMatch(questionText, portfolio.projects || []);
+    if (matchedProject) {
+      return `${matchedProject.name}: ${matchedProject.description}${matchedProject.technologies ? ` Tools used: ${matchedProject.technologies}.` : ""}${matchedProject.link ? ` Link: ${matchedProject.link}` : ""}`;
+    }
+
+    return `Jhon's projects include ${(portfolio.projects || []).map((project) => project.name).join(", ")}.`;
+  }
+
+  if (matchesAny(questionText, ["contact", "social", "facebook", "instagram", "youtube", "telegram", "discord", "hire"])) {
+    const contacts = (portfolio.contacts || []).map((contact) => `${contact.label}: ${contact.url}`);
+    return contacts.length ? `You can contact or follow Jhon here: ${contacts.join(" | ")}` : "Jhon's contact links are available in the portfolio contact section.";
+  }
+
+  if (matchesAny(questionText, ["school", "education", "college", "course", "study"])) {
+    return `Jhon's education: ${(portfolio.education || []).join("; ")}.`;
+  }
+
+  if (matchesAny(questionText, ["achievement", "dean", "leader", "academic", "research"])) {
+    return `Jhon's achievements and leadership: ${(portfolio.achievements || []).join(" ")}`;
+  }
+
+  if (matchesAny(questionText, ["language", "speak"])) {
+    return `Jhon speaks ${(portfolio.languages || []).join(", ")}.`;
+  }
+
+  if (matchesAny(questionText, ["learning", "currently learning"])) {
+    return `Jhon is currently learning ${(portfolio.currently_learning || []).join(", ")}.`;
+  }
+
+  return "Gemini is busy right now, but I can still answer basic questions about Jhon's portfolio, skills, projects, education, location, and contact links.";
+}
+
+function matchesAny(text, keywords) {
+  return keywords.some((keyword) => text.includes(keyword));
+}
+
+function dedupe(items) {
+  return [...new Set(items.filter(Boolean))];
+}
+
+function findProjectMatch(questionText, projects) {
+  return projects.find((project) => {
+    const name = String(project.name || "").toLowerCase();
+    return name && questionText.includes(name);
+  }) || projects.find((project) => {
+    const compactName = String(project.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const compactQuestion = questionText.replace(/[^a-z0-9]+/g, "");
+    return compactName && compactQuestion.includes(compactName);
+  });
+}
+
+function findLearnedKnowledgeMatch(questionText, approvedKnowledge) {
+  const lines = String(approvedKnowledge || "")
+    .split("\n")
+    .map((line) => line.replace(/^-\s*/, "").replace(/^Visitor-provided note:\s*/i, "").trim())
+    .filter(Boolean);
+
+  const questionWords = new Set(
+    questionText
+      .split(/[^a-z0-9]+/i)
+      .filter((word) => word.length >= 4)
+  );
+
+  for (const line of lines.slice().reverse()) {
+    const lineWords = line.toLowerCase().split(/[^a-z0-9]+/i);
+    const hasMatch = lineWords.some((word) => questionWords.has(word));
+    if (hasMatch) return line;
+  }
+
+  return "";
+}
+
 function sectionMatchesQuestion(section, question) {
   const haystack = `${section.title}\n${section.content}`.toLowerCase();
   const words = [...new Set(String(question).toLowerCase().split(/[^a-z0-9+#.]+/i).filter((word) => word.length >= 3))];
@@ -758,11 +889,15 @@ function selectRelevantKnowledge(sections, question) {
 
   const questionLower = String(question).toLowerCase();
   const projectTitles = [
+    "Professional Portfolio",
     "First Online Portfolio",
-    "PokeTalk",
+    "DoMATS",
     "RiderX",
+    "PokeTalk",
     "Swaggy Adventure",
     "Pakman Lite",
+    "Owly",
+    "CodeQuiz",
     "SmartLock",
     "Basketball Payment Tracker",
     "Pizza de Uno",
@@ -805,8 +940,8 @@ function selectRelevantKnowledge(sections, question) {
     australia: ["Family"],
     davao: ["Family"],
     game: ["Game Development", "Swaggy Adventure", "Pakman Lite"],
-    mobile: ["Mobile Development", "SmartLock", "Basketball Payment Tracker", "Pizza de Uno"],
-    app: ["Mobile Development", "SmartLock", "Basketball Payment Tracker", "Pizza de Uno"],
+    mobile: ["Mobile Development", "Owly", "CodeQuiz", "SmartLock", "Basketball Payment Tracker", "Pizza de Uno"],
+    app: ["Mobile Development", "Owly", "CodeQuiz", "SmartLock", "Basketball Payment Tracker", "Pizza de Uno"],
   };
 
   for (const [keyword, titles] of Object.entries(categoryMap)) {
@@ -933,7 +1068,6 @@ function compactLearningText(text) {
 function shouldAutoLearnMessage(message) {
   const text = compactLearningText(message);
   if (text.length < 8) return false;
-  if (isSensitivePersonalQuestion(text)) return false;
 
   const lowerText = text.toLowerCase();
   const ignoredMessages = [
@@ -947,19 +1081,6 @@ function shouldAutoLearnMessage(message) {
   ];
 
   return !ignoredMessages.includes(lowerText);
-}
-
-function isSensitivePersonalQuestion(message) {
-  const text = String(message || "").toLowerCase();
-  const sensitivePatterns = [
-    /\b(gay|lesbian|bisexual|transgender|straight|sexuality|sex life)\b/i,
-    /\b(religion|religious belief|political belief|politics)\b/i,
-    /\b(illness|disease|diagnosis|mental health|medical condition)\b/i,
-    /\b(phone number|contact number|exact address|home address|where does .* live)\b/i,
-    /\b(password|api key|secret key|private key)\b/i,
-  ];
-
-  return sensitivePatterns.some((pattern) => pattern.test(text));
 }
 
 async function saveAutoApprovedLearning(env, message) {
@@ -1051,18 +1172,41 @@ async function callGeminiModel(model, payload, apiKey) {
   };
 }
 
+async function getDynamicGeminiModels(apiKey) {
+  try {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
+      headers: {
+        "x-goog-api-key": apiKey,
+      },
+    });
+    const result = await response.json();
+    const models = Array.isArray(result?.models) ? result.models : [];
+
+    return models
+      .filter((model) => Array.isArray(model.supportedGenerationMethods) && model.supportedGenerationMethods.includes("generateContent"))
+      .map((model) => String(model.name || "").replace(/^models\//, ""))
+      .filter((model) => model.startsWith("gemini-"));
+  } catch {
+    return [];
+  }
+}
+
 async function callGeminiWithFallback(payload, apiKey) {
   let lastAttempt = null;
+  const models = [...new Set([...getGeminiModels(), ...(await getDynamicGeminiModels(apiKey))])];
 
-  for (const model of getGeminiModels()) {
+  for (const model of models) {
     const attempt = await callGeminiModel(model, payload, apiKey);
     lastAttempt = attempt;
 
     if (attempt.status < 400) {
       return {
         ok: true,
+        provider: "gemini",
         model: attempt.model,
-        result: attempt.result,
+        reply: attempt.result?.candidates?.[0]?.content?.parts?.[0]?.text || "",
+        usage: buildUsageSummary(attempt.result?.usageMetadata || {}),
+        tried_models: [model],
       };
     }
 
@@ -1077,6 +1221,126 @@ async function callGeminiWithFallback(payload, apiKey) {
     ok: false,
     retryable: shouldTryNextGeminiModel(lastAttempt?.status || 0, geminiStatus),
     retryAfter: getGeminiRetryAfter(lastAttempt?.result || {}),
+    tried_models: models.map((model) => `gemini:${model}`),
+  };
+}
+
+function geminiToOpenAiMessages(systemPrompt, contents) {
+  const messages = [{ role: "system", content: systemPrompt }];
+
+  for (const item of contents) {
+    const text = (item.parts || []).map((part) => part.text || "").join("\n").trim();
+    if (!text) continue;
+
+    messages.push({
+      role: item.role === "model" ? "assistant" : "user",
+      content: text,
+    });
+  }
+
+  return messages;
+}
+
+async function getDynamicGroqModels(apiKey) {
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/models", {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+    const result = await response.json();
+    const models = Array.isArray(result?.data) ? result.data : [];
+
+    return models
+      .map((model) => model.id)
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function callGroqModel(model, messages, apiKey) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      max_tokens: MAX_OUTPUT_TOKENS,
+      temperature: 0.65,
+    }),
+  });
+
+  let result = {};
+  try {
+    result = await response.json();
+  } catch {
+    result = {};
+  }
+
+  return {
+    model,
+    status: response.status,
+    result,
+  };
+}
+
+async function callGroqWithFallback(systemPrompt, contents, apiKey) {
+  const messages = geminiToOpenAiMessages(systemPrompt, contents);
+  const models = [...new Set(GROQ_FALLBACK_MODELS)];
+  const triedModels = [];
+
+  for (const model of models) {
+    triedModels.push(`groq:${model}`);
+    const attempt = await callGroqModel(model, messages, apiKey);
+
+    if (attempt.status < 400) {
+      const usage = attempt.result?.usage || {};
+      const outputTokens = Number(usage.completion_tokens || 0);
+      return {
+        ok: true,
+        provider: "groq",
+        model: attempt.model,
+        reply: attempt.result?.choices?.[0]?.message?.content || "",
+        usage: {
+          prompt_tokens: Number(usage.prompt_tokens || 0),
+          output_tokens: outputTokens,
+          total_tokens: Number(usage.total_tokens || 0),
+          max_output_tokens: MAX_OUTPUT_TOKENS,
+          output_display: `${outputTokens}/${MAX_OUTPUT_TOKENS}`,
+        },
+        tried_models: triedModels,
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    tried_models: triedModels,
+  };
+}
+
+async function callAiWithFallback(geminiPayload, env, groqContext) {
+  const triedModels = [];
+
+  if (env.GEMINI_API_KEY) {
+    const geminiResult = await callGeminiWithFallback(geminiPayload, env.GEMINI_API_KEY);
+    triedModels.push(...(geminiResult.tried_models || []));
+    if (geminiResult.ok) return { ...geminiResult, tried_models: triedModels };
+  }
+
+  if (env.GROQ_API_KEY) {
+    const groqResult = await callGroqWithFallback(groqContext.systemPrompt, groqContext.contents, env.GROQ_API_KEY);
+    triedModels.push(...(groqResult.tried_models || []));
+    if (groqResult.ok) return { ...groqResult, tried_models: triedModels };
+  }
+
+  return {
+    ok: false,
+    tried_models: triedModels,
   };
 }
 

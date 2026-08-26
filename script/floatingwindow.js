@@ -8,6 +8,7 @@ const CHATBOT_COOLDOWN_MESSAGE_STORAGE_KEY = "jcrp_chatbot_cooldown_message";
 const CHATBOT_LOCKED_STORAGE_KEY = "jcrp_chatbot_locked";
 const CHATBOT_SENSITIVE_WARNING = "huyy bastos, ayaw ana part";
 const CHATBOT_INPUT_PLACEHOLDER = "Ask something...";
+const CONTACT_EMAIL = "jhoncristopherpotestas@gmail.com";
 let chatbotConversationId = localStorage.getItem("jcrp_chatbot_conversation_id") || "";
 let chatbotVisitorId = localStorage.getItem("jcrp_chatbot_visitor_id") || "";
 
@@ -16,54 +17,15 @@ if (!chatbotVisitorId) {
   localStorage.setItem("jcrp_chatbot_visitor_id", chatbotVisitorId);
 }
 
-const aboutPortraitAssets = {
-  day: "assets/day.jpg",
-  night: "assets/night.jpg",
-  dayToNight: "assets/day-night.mp4",
-  nightToDay: "assets/night-day.mp4",
-};
+const ABOUT_PORTRAIT_IMAGE = "assets/icons/Profile.png";
 
-function getCurrentThemeMode() {
-  return document.body.classList.contains("dark") ? "night" : "day";
-}
-
-function setAboutPortrait(mode = getCurrentThemeMode()) {
+function setAboutPortrait() {
   const portrait = document.querySelector(".about-portrait-img");
   if (!portrait) return;
 
-  portrait.src = mode === "night" ? aboutPortraitAssets.night : aboutPortraitAssets.day;
+  portrait.src = ABOUT_PORTRAIT_IMAGE;
 }
 
-function playAboutPortraitTransition(fromMode, toMode) {
-  const portrait = document.querySelector(".about-portrait-img");
-  const video = document.querySelector(".about-portrait-video");
-
-  if (!portrait || !video) return;
-
-  const transitionPath =
-    fromMode === "day" && toMode === "night"
-      ? aboutPortraitAssets.dayToNight
-      : aboutPortraitAssets.nightToDay;
-
-  portrait.src = fromMode === "night" ? aboutPortraitAssets.night : aboutPortraitAssets.day;
-  video.src = transitionPath;
-  video.currentTime = 0;
-  video.classList.add("is-playing");
-
-  const finishTransition = () => {
-    portrait.src = toMode === "night" ? aboutPortraitAssets.night : aboutPortraitAssets.day;
-    video.pause();
-    video.removeAttribute("src");
-    video.load();
-    video.classList.remove("is-playing");
-  };
-
-  video.onended = finishTransition;
-  video.onerror = finishTransition;
-  video.play().catch(finishTransition);
-}
-
-window.playAboutPortraitTransition = playAboutPortraitTransition;
 window.setAboutPortrait = setAboutPortrait;
 
 function centerFloatingWindow(modal) {
@@ -154,6 +116,16 @@ function animateModalContent(modal, type) {
     duration: 420,
     delay: getStaggerDelay(45, 90),
   });
+
+  // anime.js leaves an inline transform behind, which outranks CSS :hover
+  // rules (e.g. the Links icons' hover scale). Clear it once the entrance
+  // animation has finished so those hover effects work again.
+  const settleDelay = 420 + 90 + targets.length * 45 + 120;
+  setTimeout(() => {
+    targets.forEach((target) => {
+      target.style.transform = "";
+    });
+  }, settleDelay);
 }
 
 function animateHomeIcons() {
@@ -168,7 +140,426 @@ function animateHomeIcons() {
   });
 }
 
-function createChatMessage(role, text, isTyping = false) {
+const CHATBOT_LINK_LABELS = {
+  "jhon6264.github.io/portfolio": "First Online Portfolio",
+  "poketalk.free.nf": "PokeTalk",
+  "instagram.com": "Instagram",
+  "facebook.com": "Facebook",
+  "youtube.com": "YouTube",
+  "t.me": "Telegram",
+  "discord.com": "Discord",
+};
+
+const CHATBOT_URL_PATTERN = /\bhttps?:\/\/[^\s<>"')\]]+[^\s<>"')\].,!?]/gi;
+
+// Mirrors the .project-item cards inside the "projects" floating window.
+// `slug` must match that card's data-project attribute so we can scroll/highlight it.
+const CHATBOT_PROJECTS = [
+  {
+    slug: "professional-portfolio",
+    names: ["professional portfolio"],
+    image: "assets/projects/Portfolio-second.png",
+    action: { type: "link", href: "https://jhonpotestas.vercel.app/", label: "View Portfolio" },
+  },
+  {
+    slug: "first-online-portfolio",
+    names: ["first online portfolio", "online portfolio"],
+    image: "assets/portfolio.png",
+    action: { type: "link", href: "https://jhon6264.github.io/portfolio/", label: "View Portfolio" },
+  },
+  {
+    slug: "domats",
+    names: ["domats", "do-mats"],
+    image: "assets/projects/DoMats.png",
+    action: null,
+  },
+  {
+    slug: "riderx",
+    names: ["riderx", "rider x"],
+    image: "assets/Riderx.png",
+    action: null,
+  },
+  {
+    slug: "poketalk",
+    names: ["poketalk", "poke talk"],
+    image: "assets/PokeTalk.png",
+    action: { type: "link", href: "https://poketalk.free.nf/", label: "View Website" },
+  },
+  {
+    slug: "swaggy-adventure",
+    names: ["swaggy adventure", "swaggy"],
+    image: "assets/swaggy.png",
+    action: null,
+  },
+  {
+    slug: "pakman-lite",
+    names: ["pakman lite", "pakman"],
+    image: "assets/pakman.png",
+    action: null,
+  },
+  {
+    slug: "owly",
+    names: ["owly"],
+    image: "assets/projects/Owly.jpg",
+    action: null,
+  },
+  {
+    slug: "codequiz",
+    names: ["codequiz", "code quiz"],
+    image: "assets/projects/Codequiz.jpg",
+    action: {
+      type: "link",
+      href: "https://drive.google.com/drive/folders/1UpClqFDglTAjfJTgivVc_6Wo15eSL7Qc?usp=sharing",
+      label: "Download App",
+    },
+  },
+  {
+    slug: "smartlock",
+    names: ["smartlock", "smart lock"],
+    image: "assets/SmartLock.jpg",
+    action: { type: "download", href: "apk/SmartLock.apk", label: "Download App" },
+  },
+  {
+    slug: "basketball-payment-tracker",
+    names: ["basketball payment tracker", "payment tracker"],
+    image: "assets/BasketballPaymentTracker.jpg",
+    action: { type: "download", href: "apk/BasketballPaymentTracker.apk", label: "Download App" },
+  },
+  {
+    slug: "pizza-de-uno",
+    names: ["pizza de uno", "pizza de uno app"],
+    image: "assets/pizzadeuno.png",
+    action: null,
+  },
+  {
+    slug: "registration-system",
+    names: ["registration system"],
+    image: "assets/registration.png",
+    action: null,
+  },
+];
+
+function getChatbotLinkLabel(url) {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, "");
+    const hostAndPath = `${host}${pathname}`.replace(/\/$/, "");
+
+    for (const [match, label] of Object.entries(CHATBOT_LINK_LABELS)) {
+      if (hostAndPath.includes(match)) return label;
+    }
+
+    return host;
+  } catch {
+    return url;
+  }
+}
+
+function extractChatbotLinks(text) {
+  const matches = String(text || "").match(CHATBOT_URL_PATTERN) || [];
+  const seen = new Set();
+  const links = [];
+
+  matches.forEach((url) => {
+    if (seen.has(url)) return;
+    seen.add(url);
+    links.push({ url, label: getChatbotLinkLabel(url) });
+  });
+
+  return links;
+}
+
+// About-window sections and Tools-window categories the chatbot can jump to.
+// Links/social icons are intentionally excluded: those already have their own
+// direct redirect button and don't need an in-app "View in Portfolio" jump.
+const CHATBOT_ABOUT_TOPICS = [
+  { anchor: "location", names: ["balnate", "magsaysay", "davao del sur", "where does jhon live", "jhon's location"], label: "Location" },
+  { anchor: "focus", names: ["focus areas", "main focus", "ui/ux design"], label: "Focus" },
+  { anchor: "currently-learning", names: ["currently learning", "learning react", "learning laravel", "learning godot"], label: "Currently Learning" },
+  { anchor: "education", names: ["education", "elementary school", "high school", "college", "st. mary's college", "magsaysay academy", "padada national"], label: "Education" },
+  { anchor: "interests", names: ["interests", "farm animals", "video editing"], label: "Interests" },
+  { anchor: "languages", names: ["languages", "cebuano", "bisaya", "tagalog", "basic japanese"], label: "Languages" },
+];
+
+const CHATBOT_TOOLS = [
+  { category: "development-stack", categoryLabel: "Development Stack", names: ["html", "css", "javascript", "php", "python", "development stack"] },
+  { category: "frontend", categoryLabel: "Frontend", names: ["bootstrap", "tailwind", "react", "next.js", "nextjs", "frontend tools", "frontend"] },
+  { category: "backend", categoryLabel: "Backend", names: ["laravel", "java", "c++", "backend tools", "backend"] },
+  { category: "storage", categoryLabel: "Storage & Hosting", names: ["github", "infinityfree", "firebase", "hostinger", "cloudflare", "storage and hosting", "hosting"] },
+  { category: "design", categoryLabel: "Design Tools", names: ["figma", "photoshop", "blender", "canva", "design tools"] },
+  { category: "mobile-dev", categoryLabel: "Mobile Development", names: ["flutter", "react native expo", "mobile development"] },
+  { category: "game-dev", categoryLabel: "Game Development", names: ["godot", "gdscript", "gd script", "game development"] },
+  { category: "favorite-libraries", categoryLabel: "Favorite Libraries", names: ["anime.js", "flaticon", "google fonts", "daisyui", "dafont", "iconape", "react icons", "favorite libraries"] },
+  { category: "software", categoryLabel: "Software", names: ["visual studio", "netbeans", "cisco packet tracer", "xampp", "postman", "arduino", "proton vpn", "expo orbit"] },
+  { category: "artificial-intelligence", categoryLabel: "AI Tools", names: ["chatgpt", "claude", "deepseek", "gemini", "cursor", "ai tools"] },
+  { category: "video", categoryLabel: "Video Tools", names: ["capcut", "adobe premiere", "video tools"] },
+  { category: "others", categoryLabel: "Other Tools", names: ["microsoft word", "powerpoint", "excel"] },
+];
+
+// Raw URLs are surfaced as buttons under the reply, so strip them out of the
+// displayed text. Matching/lookup still runs against the original string.
+function stripUrlsForDisplay(text) {
+  // Remove the URL plus any wrapping parens/angle brackets, and any dangling
+  // connector left in front of it ("live at <url>" -> "live"), so the sentence
+  // still reads once the link becomes a button.
+  // [ \t]* (not \s*) so newlines are preserved and lines never get glued.
+  // Replaced with a single space; stray spaces before punctuation are cleaned
+  // up per-line below.
+  const withoutUrls = String(text || "").replace(
+    /(?:[ \t]+(?:at|on|via|from|to))?[ \t]*[(<[]?[ \t]*https?:\/\/[^\s<>"')\]]+[^\s<>"')\].,!?][ \t]*[)>\]]?/gi,
+    " "
+  );
+
+  return withoutUrls
+    .split("\n")
+    // Drop bullets/lines that held nothing but the URL.
+    .filter((line) => /[a-z0-9]/i.test(line))
+    .map((line) =>
+      line
+        .replace(/\s{2,}/g, " ")
+        // Collapse punctuation stranded by the removal (" ." / " ,").
+        .replace(/\s+([.,!?;:])/g, "$1")
+        .trimEnd()
+    )
+    .join("\n")
+    .trim();
+}
+
+function textMentionsPhrase(lowerText, phrase) {
+  // Word-boundary match so short/substring names (e.g. "java" vs "javascript",
+  // "css" vs "success") don't false-positive inside unrelated words.
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`, "i").test(lowerText);
+}
+
+function findMentionedProjects(text) {
+  const lowerText = String(text || "").toLowerCase();
+  return CHATBOT_PROJECTS.filter((project) =>
+    project.names.some((name) => textMentionsPhrase(lowerText, name))
+  );
+}
+
+function findMentionedAboutTopics(text) {
+  const lowerText = String(text || "").toLowerCase();
+  return CHATBOT_ABOUT_TOPICS.filter((topic) =>
+    topic.names.some((name) => textMentionsPhrase(lowerText, name))
+  );
+}
+
+function findMentionedToolCategories(text) {
+  const lowerText = String(text || "").toLowerCase();
+  return CHATBOT_TOOLS.filter((tool) =>
+    tool.names.some((name) => textMentionsPhrase(lowerText, name))
+  );
+}
+
+// Opens a floating window, scrolls to a matching element inside it, and flashes a highlight.
+function navigateToPortfolioTarget(windowType, selector, highlightClass = "project-item-highlight") {
+  createFloatingWindow(windowType, null);
+
+  requestAnimationFrame(() => {
+    const modal = container.querySelector(`.floating-window[data-type="${windowType}"]`);
+    const targets = modal ? [...modal.querySelectorAll(selector)] : [];
+    if (!modal || !targets.length) return;
+
+    modal.style.zIndex = ++zIndexCounter;
+
+    setTimeout(() => {
+      targets[0].scrollIntoView({ behavior: "smooth", block: "center" });
+      targets.forEach((target) => {
+        target.classList.remove(highlightClass);
+        // Force reflow so the animation restarts if triggered again on the same element.
+        void target.offsetWidth;
+        target.classList.add(highlightClass);
+        target.addEventListener("animationend", () => {
+          target.classList.remove(highlightClass);
+        }, { once: true });
+      });
+    }, 260);
+  });
+}
+
+function navigateToProject(slug) {
+  navigateToPortfolioTarget("projects", `.project-item[data-project="${slug}"]`);
+}
+
+function navigateToAboutTopic(anchor) {
+  navigateToPortfolioTarget("about", `[data-about-section="${anchor}"]`);
+}
+
+function navigateToToolCategory(category) {
+  navigateToPortfolioTarget("tools", `[data-tools-category="${category}"]`, "tools-category-highlight");
+}
+
+// --- Lightweight markdown rendering for chat bubbles -------------------------
+// Deliberately built from DOM nodes (never innerHTML) so model output can't
+// inject markup. Supports the small subset Gemini actually emits: **bold**,
+// *italic*, `code`, bullet lists, and line breaks.
+
+function appendInlineMarkdown(parent, text) {
+  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  let lastIndex = 0;
+
+  for (const match of String(text).matchAll(pattern)) {
+    if (match.index > lastIndex) {
+      parent.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+    }
+
+    const token = match[0];
+    let node;
+
+    if (token.startsWith("**")) {
+      node = document.createElement("strong");
+      node.textContent = token.slice(2, -2);
+    } else if (token.startsWith("`")) {
+      node = document.createElement("code");
+      node.textContent = token.slice(1, -1);
+    } else {
+      node = document.createElement("em");
+      node.textContent = token.slice(1, -1);
+    }
+
+    parent.appendChild(node);
+    lastIndex = match.index + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    parent.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+}
+
+function renderMarkdownInto(container, text) {
+  container.textContent = "";
+
+  const lines = String(text || "").split(/\r\n|\n|\r/);
+  let paragraph = null;
+  let list = null;
+
+  const closeParagraph = () => { paragraph = null; };
+  const closeList = () => { list = null; };
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim();
+
+    if (!line) {
+      closeParagraph();
+      closeList();
+      return;
+    }
+
+    const bullet = line.match(/^[-*•]\s+(.+)$/);
+    if (bullet) {
+      closeParagraph();
+      if (!list) {
+        list = document.createElement("ul");
+        list.className = "chat-md-list";
+        container.appendChild(list);
+      }
+      const item = document.createElement("li");
+      appendInlineMarkdown(item, bullet[1]);
+      list.appendChild(item);
+      return;
+    }
+
+    closeList();
+
+    if (!paragraph) {
+      paragraph = document.createElement("p");
+      container.appendChild(paragraph);
+    } else {
+      paragraph.appendChild(document.createElement("br"));
+    }
+
+    appendInlineMarkdown(paragraph, line);
+  });
+
+  // Guarantee at least one <p> so existing selectors (e.g. saveChatMessages,
+  // which reads .chat-bubble p) keep working on empty or whitespace replies.
+  if (!container.querySelector("p, ul")) {
+    const fallback = document.createElement("p");
+    fallback.textContent = String(text || "");
+    container.appendChild(fallback);
+  }
+}
+
+// Reveals a bot reply word-by-word, then runs `onComplete` to attach the
+// project cards / link buttons that depend on the full text.
+function typeOutMarkdown(container, text, onComplete, scrollTarget) {
+  const words = String(text || "").split(/(\s+)/).filter(Boolean);
+  let index = 0;
+  let finished = false;
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearInterval(timer);
+    renderMarkdownInto(container, text);
+    container.closest(".chat-message")?.classList.remove("is-writing");
+    onComplete?.();
+    if (scrollTarget) scrollChatToBottom(scrollTarget);
+  };
+
+  container.closest(".chat-message")?.classList.add("is-writing");
+
+  const timer = setInterval(() => {
+    if (index >= words.length) {
+      finish();
+      return;
+    }
+
+    index += 1;
+    renderMarkdownInto(container, words.slice(0, index).join(""));
+    if (scrollTarget) scrollChatToBottom(scrollTarget);
+  }, 25);
+
+  return finish;
+}
+
+function createViewInPortfolioButton(label, onClick) {
+  const viewBtn = document.createElement("button");
+  viewBtn.type = "button";
+  viewBtn.className = "chat-link-btn chat-link-btn-outline";
+  viewBtn.innerHTML = `<span>${label}</span><i class="bi bi-search"></i>`;
+  viewBtn.addEventListener("click", onClick);
+  return viewBtn;
+}
+
+function createProjectCard(project) {
+  const card = document.createElement("div");
+  card.className = "chat-project-card";
+
+  const image = document.createElement("img");
+  image.src = project.image;
+  image.alt = project.slug;
+  image.loading = "lazy";
+  card.appendChild(image);
+
+  const actions = document.createElement("div");
+  actions.className = "chat-project-actions";
+
+  if (project.action) {
+    const actionBtn = document.createElement("a");
+    actionBtn.className = "chat-link-btn";
+    actionBtn.href = project.action.href;
+    if (project.action.type === "download") {
+      actionBtn.setAttribute("download", "");
+    } else {
+      actionBtn.target = "_blank";
+      actionBtn.rel = "noopener noreferrer";
+    }
+    const icon = project.action.type === "download" ? "bi-download" : "bi-box-arrow-up-right";
+    actionBtn.innerHTML = `<span>${project.action.label}</span><i class="bi ${icon}"></i>`;
+    actions.appendChild(actionBtn);
+  }
+
+  actions.appendChild(createViewInPortfolioButton("View in Portfolio", () => navigateToProject(project.slug)));
+
+  card.appendChild(actions);
+  return card;
+}
+
+function createChatMessage(role, text, isTyping = false, options = {}) {
+  const { shouldType = false, scrollTarget = null } = options;
   const message = document.createElement("div");
   message.className = `chat-message ${role === "user" ? "user-message" : "bot-message"}`;
   message.classList.toggle("is-typing", isTyping);
@@ -178,7 +569,7 @@ function createChatMessage(role, text, isTyping = false) {
     avatar.className = "chat-avatar";
 
     const avatarImage = document.createElement("img");
-    avatarImage.src = "assets/day.jpg";
+    avatarImage.src = "assets/icons/Profile.png";
     avatarImage.alt = "Jhon assistant";
 
     avatar.appendChild(avatarImage);
@@ -198,13 +589,88 @@ function createChatMessage(role, text, isTyping = false) {
       </span>
     `;
   } else {
-    const paragraph = document.createElement("p");
-    paragraph.textContent = text;
-    bubble.appendChild(paragraph);
+    const body = document.createElement("div");
+    body.className = "chat-bubble-body";
+    bubble.appendChild(body);
+
+    if (role === "user") {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = text;
+      body.appendChild(paragraph);
+    } else {
+      // Extras are matched against the original text (URLs help identify
+      // projects), but the displayed copy drops the raw links.
+      const displayText = stripUrlsForDisplay(text);
+      const attachExtras = () => appendChatExtras(bubble, text);
+
+      if (shouldType) {
+        const finishTyping = typeOutMarkdown(body, displayText, attachExtras, scrollTarget);
+        // Clicking a message that is still typing reveals it immediately.
+        message.addEventListener("click", finishTyping, { once: true });
+      } else {
+        renderMarkdownInto(body, displayText);
+        attachExtras();
+      }
+    }
   }
 
   message.appendChild(bubble);
   return message;
+}
+
+// Project cards, About/Tools jump buttons, and raw link buttons that follow a
+// bot reply. Split out of createChatMessage so it can run after the typing
+// animation completes.
+function appendChatExtras(bubble, text) {
+  const mentionedProjects = findMentionedProjects(text);
+
+  mentionedProjects.forEach((project) => {
+    bubble.appendChild(createProjectCard(project));
+  });
+
+  const mentionedAboutTopics = findMentionedAboutTopics(text);
+  const mentionedToolCategories = findMentionedToolCategories(text);
+
+  if (mentionedAboutTopics.length || mentionedToolCategories.length) {
+    const topicRow = document.createElement("div");
+    topicRow.className = "chat-bubble-links";
+
+    mentionedAboutTopics.forEach((topic) => {
+      topicRow.appendChild(
+        createViewInPortfolioButton(topic.label, () => navigateToAboutTopic(topic.anchor))
+      );
+    });
+
+    mentionedToolCategories.forEach((tool) => {
+      topicRow.appendChild(
+        createViewInPortfolioButton(tool.categoryLabel, () => navigateToToolCategory(tool.category))
+      );
+    });
+
+    bubble.appendChild(topicRow);
+  }
+
+  const links = extractChatbotLinks(text).filter((link) => {
+    // Skip links already surfaced as a project card's action button.
+    return !mentionedProjects.some((project) => project.action?.href === link.url);
+  });
+
+  if (links.length) {
+    const linkRow = document.createElement("div");
+    linkRow.className = "chat-bubble-links";
+
+    links.forEach(({ url, label }) => {
+      const linkButton = document.createElement("a");
+      linkButton.className = "chat-link-btn";
+      linkButton.href = url;
+      linkButton.target = "_blank";
+      linkButton.rel = "noopener noreferrer";
+      linkButton.innerHTML = `<span>${label}</span><i class="bi bi-box-arrow-up-right"></i>`;
+      linkRow.appendChild(linkButton);
+    });
+
+    bubble.appendChild(linkRow);
+  }
 }
 
 function trimChatMessages(messages) {
@@ -232,7 +698,12 @@ function getStoredChatMessages() {
 function saveChatMessages(messages) {
   const chatMessages = [...messages.querySelectorAll(".chat-message:not(.is-typing)")].map((message) => ({
     role: message.classList.contains("user-message") ? "user" : "bot",
-    text: message.querySelector(".chat-bubble p")?.textContent || "",
+    // dataset.fullText holds the complete reply while it is still typing out;
+    // fall back to the rendered text for user messages and restored history.
+    text: message.dataset.fullText
+      || message.querySelector(".chat-bubble-body")?.textContent
+      || message.querySelector(".chat-bubble p")?.textContent
+      || "",
   })).filter((message) => message.text);
 
   localStorage.setItem(
@@ -434,7 +905,13 @@ async function sendChatbotMessage(modal) {
     }
 
     const botReply = data.reply || "I could not generate a reply.";
-    typingMessage.replaceWith(createChatMessage("bot", botReply));
+    const botMessage = createChatMessage("bot", botReply, false, {
+      shouldType: true,
+      scrollTarget: messages,
+    });
+    // Keep the full reply available to saveChatMessages while it types out.
+    botMessage.dataset.fullText = botReply;
+    typingMessage.replaceWith(botMessage);
     trimChatMessages(messages);
     saveChatMessages(messages);
 
@@ -505,40 +982,39 @@ if (type === "about") {
 <div class="about-modal-content">
   <div class="about-header">
     <div class="about-portrait">
-      <img class="about-portrait-img" src="assets/day.jpg" alt="Jhon Cristopher Potestas" />
-      <video class="about-portrait-video" muted playsinline preload="auto"></video>
+      <img class="about-portrait-img" src="assets/icons/Profile.png" alt="Jhon Cristopher Potestas" />
     </div>
     <div class="about-text">
       <div class="name">Jhon Cristopher R. Potestas</div>
       <div class="degree">BS in Information Technology</div>
-      <div class="year">3rd Year Student</div>
-      <div class="about-role">Web Dev • App Dev • Game Dev</div>
+      <div class="year">4th Year Student</div>
+      <div class="about-role">Junior Full-Stack Developer</div>
     </div>
   </div>
 
   <div class="about-scrollable">
-    <section class="about-section about-bio">
+    <section class="about-section about-bio" data-about-section="bio">
       <p>I’m an Information Technology student who enjoys building interactive websites, simple systems, and game-like experiences. I like combining design, code, and small details to make projects feel alive and personal.</p>
     </section>
 
-    <section class="about-section">
+    <section class="about-section" data-about-section="location">
       <a class="about-location-link" href="https://www.google.com/maps/search/?api=1&query=Balnate%2C%20Magsaysay%2C%20Davao%20del%20Sur%2C%20Philippines" target="_blank">
         <i class="bi bi-geo-alt-fill"></i>
         <span>Balnate, Magsaysay, Davao del Sur, Philippines</span>
       </a>
     </section>
 
-    <section class="about-section">
+    <section class="about-section" data-about-section="focus">
       <h3>Focus</h3>
       <div class="about-chip-list">
         <span>Web Development</span>
-        <span>UI Design</span>
+        <span>App Development</span>
         <span>Game Development</span>
-        <span>System Development</span>
+        <span>UI/UX Design</span>
       </div>
     </section>
 
-    <section class="about-section">
+    <section class="about-section" data-about-section="currently-learning">
       <h3>Currently Learning</h3>
       <div class="about-learning-icons" aria-label="React, Laravel, Firebase, UI/UX, Godot">
         <img src="assets/icons/react.png" alt="React">
@@ -549,7 +1025,7 @@ if (type === "about") {
       </div>
     </section>
 
-    <section class="about-section education-section">
+    <section class="about-section education-section" data-about-section="education">
       <h3>Education</h3>
       <div class="about-info-row">
         <span>Primary</span>
@@ -565,18 +1041,18 @@ if (type === "about") {
       </div>
     </section>
 
-    <section class="about-section interest-section">
+    <section class="about-section interest-section" data-about-section="interests">
       <h3>Interests</h3>
       <ul class="about-interest-list">
-        <li>Basketball</li>
-        <li>Farm Animals</li>
-        <li>Online Games</li>
+        <li>Development </li>
+        <li>Build Projects</li>
+        <li>Video Editing</li>
         <li>Design</li>
-        <li>Small Projects</li>
+        <li>Farm Animals</li>
       </ul>
     </section>
 
-    <section class="about-section language-section">
+    <section class="about-section language-section" data-about-section="languages">
       <h3>Languages</h3>
       <p>Cebuano, Tagalog, English, and Basic Japanese</p>
     </section>
@@ -589,8 +1065,8 @@ if (type === "about") {
 if (type === "tools") {
   modalContent = `
     <div class="tools-modal-content tools-box">
-  <h3>Development Stack</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="development-stack">Development Stack</h3>
+  <div class="tools-grid" data-tools-category="development-stack">
     <div class="tools-grid-item">
       <i class="devicon-html5-plain colored tool-icon"></i>
       <span>HTML</span>
@@ -613,8 +1089,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Frontend</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="frontend">Frontend</h3>
+  <div class="tools-grid" data-tools-category="frontend">
     <div class="tools-grid-item">
       <i class="devicon-bootstrap-plain colored tool-icon"></i>
       <span>Bootstrap 5</span>
@@ -633,8 +1109,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Backend</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="backend">Backend</h3>
+  <div class="tools-grid" data-tools-category="backend">
     <div class="tools-grid-item">
       <i class="devicon-laravel-original colored tool-icon"></i>
       <span>Laravel</span>
@@ -649,8 +1125,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Storage</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="storage">Storage</h3>
+  <div class="tools-grid" data-tools-category="storage">
     <div class="tools-grid-item">
       <img src="assets/icons/github.png" alt="GitHub" class="tool-icon">
       <span>GitHub</span>
@@ -673,8 +1149,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Design</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="design">Design</h3>
+  <div class="tools-grid" data-tools-category="design">
     <div class="tools-grid-item">
       <img src="assets/icons/figma.png" alt="Figma" class="tool-icon">
       <span>Figma</span>
@@ -693,8 +1169,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Mobile Dev</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="mobile-dev">Mobile Dev</h3>
+  <div class="tools-grid" data-tools-category="mobile-dev">
     <div class="tools-grid-item">
       <i class="devicon-flutter-plain colored tool-icon"></i>
       <span>Flutter</span>
@@ -705,16 +1181,16 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Game Dev</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="game-dev">Game Dev</h3>
+  <div class="tools-grid" data-tools-category="game-dev">
     <div class="tools-grid-item">
       <i class="devicon-godot-plain colored tool-icon"></i>
       <span>Godot / GD Script</span>
     </div>
   </div>
 
-  <h3>Favorite Libraries</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="favorite-libraries">Favorite Libraries</h3>
+  <div class="tools-grid" data-tools-category="favorite-libraries">
     <div class="tools-grid-item">
       <img src="assets/icons/anime-js.png" alt="anime.js" class="tool-icon">
       <span>anime.js</span>
@@ -749,8 +1225,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Software</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="software">Software</h3>
+  <div class="tools-grid" data-tools-category="software">
     <div class="tools-grid-item">
       <i class="devicon-vscode-plain colored tool-icon"></i>
       <span>Visual Studio Code</span>
@@ -801,8 +1277,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Artificial Intelligence</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="artificial-intelligence">Artificial Intelligence</h3>
+  <div class="tools-grid" data-tools-category="artificial-intelligence">
     <div class="tools-grid-item">
       <img src="assets/icons/chatgpt.png" alt="ChatGPT" class="tool-icon">
       <span>ChatGPT</span>
@@ -825,8 +1301,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Video</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="video">Video</h3>
+  <div class="tools-grid" data-tools-category="video">
     <div class="tools-grid-item">
       <img src="assets/icons/capcut.jpg" alt="CapCut" class="tool-icon">
       <span>CapCut</span>
@@ -837,8 +1313,8 @@ if (type === "tools") {
     </div>
   </div>
 
-  <h3>Others</h3>
-  <div class="tools-grid">
+  <h3 data-tools-category="others">Others</h3>
+  <div class="tools-grid" data-tools-category="others">
     <div class="tools-grid-item">
       <img src="assets/icons/word.png" alt="Microsoft Word" class="tool-icon">
       <span>Microsoft Word</span>
@@ -862,9 +1338,25 @@ if (type === "projects") {
   modalContent = `
     <div class="projects-modal-content projects-box">
 
-      <!-- Website -->
-      <h3 class="project-section-title">Website</h3>
-      <div class="project-item">
+      <!-- Portfolio -->
+      <h3 class="project-section-title">Portfolio</h3>
+      <div class="project-item" data-project="professional-portfolio">
+        <img src="assets/projects/Portfolio-second.png" alt="Professional Portfolio">
+        <div class="project-text">
+          <div class="project-title">Professional Portfolio</div>
+          <p class="project-description">My Professional Portfolio, inspired by Bryl's portfolio design. It's static and simple, but clean, informative, and professional.</p>
+              <div class="project-tech-list">
+  <span class="project-tech-item"><i class="devicon-html5-plain colored"></i><span>HTML</span></span>
+  <span class="project-tech-item"><i class="devicon-css3-plain colored"></i><span>CSS</span></span>
+  <span class="project-tech-item"><i class="devicon-javascript-plain colored"></i><span>JS</span></span>
+  <span class="project-tech-item"><i class="devicon-tailwindcss-original colored"></i><span>Tailwind CSS</span></span>
+              </div>
+          <a href="https://jhonpotestas.vercel.app/" target="_blank" class="view-project-btn">
+            <span class="anchor">View Portfolio</span>
+          </a>
+        </div>
+      </div>
+      <div class="project-item" data-project="first-online-portfolio">
         <img src="assets/portfolio.png" alt="Portfolio Project">
         <div class="project-text">
           <div class="project-title">First Online Portfolio</div>
@@ -882,22 +1374,28 @@ if (type === "projects") {
           </a>
         </div>
       </div>
-      <div class="project-item">
-        <img src="assets/PokeTalk.png" alt="PokeTalk">
+      <hr class="project-separator" />
+
+      <!-- Website -->
+      <h3 class="project-section-title">Website</h3>
+      <div class="project-item" data-project="domats">
+        <img src="assets/projects/DoMats.png" alt="DoMATS">
         <div class="project-text">
-          <div class="project-title">PokeTalk</div>
-          <p class="project-description">A Pokemon-themed web app that uses PokeAPI data to show Pokemon information in a simple hosted PHP project. It was built as a lightweight API practice project and deployed through InfinityFree.</p>
+          <div class="project-title">DoMATS</div>
+          <p class="project-description">An ongoing capstone project &mdash; a document management and tracking system for St. Mary's College of Bansalan, Inc. It streamlines multi-signatory document signing, cuts manual errands, and helps organize and secure records.</p>
           <div class="project-tech-list">
-            <span class="project-tech-item"><i class="devicon-php-plain colored"></i><span>PHP</span></span>
-            <span class="project-tech-item"><i class="bi bi-database-fill"></i><span>PokeAPI</span></span>
-            <span class="project-tech-item"><img src="assets/icons/infinityfree.png" alt=""><span>InfinityFree</span></span>
+            <span class="project-tech-item"><img src="assets/icons/react.png" alt=""><span>React</span></span>
+            <span class="project-tech-item"><i class="devicon-laravel-original colored"></i><span>Laravel</span></span>
+            <span class="project-tech-item"><i class="devicon-typescript-plain colored"></i><span>TypeScript</span></span>
+            <span class="project-tech-item"><i class="devicon-javascript-plain colored"></i><span>JavaScript</span></span>
+            <span class="project-tech-item"><i class="devicon-tailwindcss-original colored"></i><span>Tailwind CSS</span></span>
+            <span class="project-tech-item"><i class="devicon-mysql-plain colored"></i><span>MySQL</span></span>
+            <span class="project-tech-item"><i class="bi bi-broadcast-pin"></i><span>WebSocket</span></span>
+            <span class="project-tech-item"><i class="bi bi-eye-fill"></i><span>OCR Tesseract</span></span>
           </div>
-          <a href="https://poketalk.free.nf/" target="_blank" class="view-project-btn">
-            <span class="anchor">View Website</span>
-          </a>
         </div>
       </div>
-      <div class="project-item">
+      <div class="project-item" data-project="riderx">
         <img src="assets/Riderx.png" alt="RiderX">
         <div class="project-text">
           <div class="project-title">RiderX</div>
@@ -915,12 +1413,27 @@ if (type === "projects") {
           </div>
         </div>
       </div>
+      <div class="project-item" data-project="poketalk">
+        <img src="assets/PokeTalk.png" alt="PokeTalk">
+        <div class="project-text">
+          <div class="project-title">PokeTalk</div>
+          <p class="project-description">A Pokemon-themed web app that uses PokeAPI data to show Pokemon information in a simple hosted PHP project. It was built as a lightweight API practice project and deployed through InfinityFree.</p>
+          <div class="project-tech-list">
+            <span class="project-tech-item"><i class="devicon-php-plain colored"></i><span>PHP</span></span>
+            <span class="project-tech-item"><i class="bi bi-database-fill"></i><span>PokeAPI</span></span>
+            <span class="project-tech-item"><img src="assets/icons/infinityfree.png" alt=""><span>InfinityFree</span></span>
+          </div>
+          <a href="https://poketalk.free.nf/" target="_blank" class="view-project-btn">
+            <span class="anchor">View Website</span>
+          </a>
+        </div>
+      </div>
 
       <hr class="project-separator" />
 
       <!-- Game Development -->
       <h3 class="project-section-title">Game Development</h3>
-      <div class="project-item">
+      <div class="project-item" data-project="swaggy-adventure">
         <img src="assets/swaggy.png" alt="Swaggy Adventure">
         <div class="project-text">
           <div class="project-title">Swaggy Adventure</div>
@@ -938,7 +1451,7 @@ if (type === "projects") {
 
         </div>
       </div>
-      <div class="project-item">
+      <div class="project-item" data-project="pakman-lite">
         <img src="assets/pakman.png" alt="Pakman Lite">
         <div class="project-text">
           <div class="project-title">Pakman Lite</div>
@@ -960,7 +1473,38 @@ if (type === "projects") {
 
       <!-- Mobile Development -->
       <h3 class="project-section-title">Mobile Development</h3>
-      <div class="project-item">
+      <div class="project-item" data-project="owly">
+        <img class="mobile-project-preview" src="assets/projects/Owly.jpg" alt="Owly">
+        <div class="project-text">
+          <div class="project-title">Owly</div>
+          <p class="project-description">A personal companion mobile app for managing notes, friendships, and important dates in one place. It integrates the Gemma 4 E2B IT AI model so users can chat with an AI assistant fully offline, keeping interactions accessible and private.</p>
+          <div class="project-tech-list">
+            <span class="project-tech-item"><img src="assets/icons/react.png" alt=""><span>React</span></span>
+            <span class="project-tech-item"><img src="assets/icons/react.png" alt=""><span>React Native</span></span>
+            <span class="project-tech-item"><i class="devicon-typescript-plain colored"></i><span>TypeScript</span></span>
+            <span class="project-tech-item"><i class="bi bi-robot"></i><span>Huggingface</span></span>
+          </div>
+          <span class="view-project-btn is-disabled" aria-disabled="true">
+            <span class="anchor">Unavailable</span>
+          </span>
+        </div>
+      </div>
+      <div class="project-item" data-project="codequiz">
+        <img class="mobile-project-preview" src="assets/projects/Codequiz.jpg" alt="CodeQuiz">
+        <div class="project-text">
+          <div class="project-title">CodeQuiz</div>
+          <p class="project-description">A mobile learning app that helps IT freshmen learn and practice programming through interactive lessons and quizzes. It covers beginner topics like HTML, CSS, and JavaScript, with quizzes that scale from basic to more challenging questions.</p>
+          <div class="project-tech-list">
+            <span class="project-tech-item"><img src="assets/icons/react.png" alt=""><span>React</span></span>
+            <span class="project-tech-item"><img src="assets/icons/react-native-expo.png" alt=""><span>Expo</span></span>
+            <span class="project-tech-item"><i class="devicon-typescript-plain colored"></i><span>TypeScript</span></span>
+          </div>
+          <a href="https://drive.google.com/drive/folders/1UpClqFDglTAjfJTgivVc_6Wo15eSL7Qc?usp=sharing" target="_blank" rel="noopener noreferrer" class="view-project-btn">
+            <span class="anchor">Download App</span>
+          </a>
+        </div>
+      </div>
+      <div class="project-item" data-project="smartlock">
         <img class="mobile-project-preview" src="assets/SmartLock.jpg" alt="SmartLock">
         <div class="project-text">
           <div class="project-title">SmartLock</div>
@@ -974,7 +1518,7 @@ if (type === "projects") {
           </a>
         </div>
       </div>
-      <div class="project-item">
+      <div class="project-item" data-project="basketball-payment-tracker">
         <img class="mobile-project-preview" src="assets/BasketballPaymentTracker.jpg" alt="Basketball Payment Tracker">
         <div class="project-text">
           <div class="project-title">Basketball Payment Tracker</div>
@@ -988,7 +1532,7 @@ if (type === "projects") {
           </a>
         </div>
       </div>
-      <div class="project-item">
+      <div class="project-item" data-project="pizza-de-uno">
         <img class="mobile-project-preview" src="assets/pizzadeuno.png" alt="Pizza de Uno">
         <div class="project-text">
           <div class="project-title">Pizza de Uno</div>
@@ -1003,7 +1547,7 @@ if (type === "projects") {
 
       <!-- Application -->
       <h3 class="project-section-title">Application</h3>
-      <div class="project-item">
+      <div class="project-item" data-project="registration-system">
         <img src="assets/registration.png" alt="Registration System">
         <div class="project-text">
           <div class="project-title">Registration System</div>
@@ -1043,7 +1587,7 @@ if (type === "links") {
             <i class="bi bi-facebook"></i>
             <span class="label">Facebook</span>
           </a>
-          <a href="https://www.youtube.com/@rizeertales" target="_blank" class="icon-link">
+          <a href="https://www.youtube.com/@Rizeeer" target="_blank" class="icon-link">
             <i class="bi bi-youtube"></i>
             <span class="label">Youtube</span>
           </a>
@@ -1067,19 +1611,42 @@ if (type === "links") {
 
 if (type === "contact") {
   modalContent = `
-    <form id="contact-form" class="contact-modal-content">
-      <label for="from_email">Your Email</label>
-      <input type="email" name="from_email" id="from_email" placeholder="example@email.com" required />
+    <div class="contact-disabled-wrapper">
+      <form id="contact-form" class="contact-modal-content is-disabled" aria-hidden="true" inert>
+        <label for="from_email">Your Email</label>
+        <input type="email" name="from_email" id="from_email" placeholder="example@email.com" tabindex="-1" />
 
-      <label for="from_name">Your Name</label>
-      <input type="text" name="from_name" id="from_name" placeholder="Jhon Cristopher Potestas" required />
+        <label for="from_name">Your Name</label>
+        <input type="text" name="from_name" id="from_name" placeholder="Jhon Cristopher Potestas" tabindex="-1" />
 
-      <label for="message">Enter your message</label>
-      <textarea name="message" id="message" rows="4" placeholder="Type your message here..." required></textarea>
+        <label for="message">Enter your message</label>
+        <textarea name="message" id="message" rows="4" placeholder="Type your message here..." tabindex="-1"></textarea>
 
-      <button type="submit" class="send-btn">Send</button>
-    </form>
-    <div id="floating-alert" class="floating-alert hidden">✅ Message Sent!</div>
+        <button type="button" class="send-btn" tabindex="-1">Send</button>
+      </form>
+
+      <div class="contact-unavailable-overlay">
+        <div class="contact-unavailable-card">
+          <h3 class="contact-unavailable-title">Contact is Unavailable :(</h3>
+          <p class="contact-unavailable-text">However, you can email me at:</p>
+
+          <div class="contact-email-row">
+            <span class="contact-email">${CONTACT_EMAIL}</span>
+            <button type="button" class="contact-copy-btn" aria-label="Copy email address" title="Copy email address">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+
+          <div class="contact-or-divider"><span>or</span></div>
+
+          <p class="contact-unavailable-text">You can chat with my assistant</p>
+          <button type="button" class="contact-chatbot-btn">
+            <i class="bi bi-robot"></i>
+            <span>Open Chatbot</span>
+          </button>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1094,7 +1661,7 @@ if (type === "chatbot") {
       <div class="chatbot-messages" aria-live="polite">
         <div class="chat-message bot-message">
           <div class="chat-avatar">
-            <img src="assets/day.jpg" alt="Jhon assistant">
+            <img src="assets/icons/Profile.png" alt="Jhon assistant">
           </div>
           <div class="chat-bubble">
             <p>Hi, I’m Jhon’s assistant. Ask me anything about his skills, projects, or background.</p>
@@ -1230,6 +1797,36 @@ if (type === "chatbot") {
   });
 }
 
+if (type === "contact") {
+  const copyBtn = modal.querySelector(".contact-copy-btn");
+  const chatbotBtn = modal.querySelector(".contact-chatbot-btn");
+
+  copyBtn?.addEventListener("click", async () => {
+    playSound("audio/closeclick.mp3");
+
+    const icon = copyBtn.querySelector("i");
+    const restoreIcon = () => {
+      icon.className = "bi bi-clipboard";
+      copyBtn.classList.remove("is-copied");
+    };
+
+    try {
+      await navigator.clipboard.writeText(CONTACT_EMAIL);
+      icon.className = "bi bi-check-lg";
+      copyBtn.classList.add("is-copied");
+      setTimeout(restoreIcon, 1500);
+    } catch {
+      icon.className = "bi bi-x-lg";
+      setTimeout(restoreIcon, 1500);
+    }
+  });
+
+  chatbotBtn?.addEventListener("click", () => {
+    playSound("audio/closeclick.mp3");
+    createFloatingWindow("chatbot", null);
+  });
+}
+
   // Bring to front on focus
   modal.addEventListener("mousedown", () => {
     modal.style.zIndex = ++zIndexCounter;
@@ -1279,8 +1876,12 @@ emailjs.init("JgALoWAfPc0J_yYxJ");
 document.addEventListener("submit", function (e) {
   if (e.target && e.target.id === "contact-form") {
     e.preventDefault();
+
+    // Contact form is currently disabled behind the "unavailable" overlay.
+    if (e.target.classList.contains("is-disabled")) return;
+
     playSound('audio/closeclick.mp3');
-    
+
 
     emailjs.sendForm("service_z4wckrd", "template_svzib4n", e.target)
       .then(function () {

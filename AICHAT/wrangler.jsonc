@@ -1,0 +1,5 @@
+{
+  "name": "jcrpbot",
+  "compatibility_date": "2026-08-25",
+  "main": "cloudflare-worker.js"
+}
